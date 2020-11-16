@@ -8,23 +8,55 @@ cellex_analysis(
   input_set,
   input_type = c("ensembl", "uniprot", "gene"),
   cellex_data = c(1, 2),
-  is_cellex_compressed = TRUE,
-  first_order = FALSE,
-  all_genes_as_background = FALSE,
-  statistic = c("W", "KS", "T"),
   p_value = TRUE,
   p_value_adjust = TRUE,
   emp_p_value = FALSE,
   es_value = FALSE,
-  statistic_plot = FALSE,
+  first_order = FALSE,
+  all_genes_as_background = FALSE,
+  statistic = c("W", "KS", "T"),
   reps = 1000,
   num_cores = 1,
   num_background_genes = 0,
+  statistic_plot = FALSE,
   save_output = TRUE
 )
+}
+\arguments{
+\item{input_set}{Gene set or protein set, as a character vector.}
+
+\item{input_type}{What format the input_set is in. One of "ensembl" (ENSEMBL format), "uniprot" (UNIPROT format), or "gene" (HGNC format). Defaults to "ensembl" if no user specified value is selected.}
+
+\item{cellex_data}{The CELLEX dataset to use in the package - must be in .csv format, and can also be gzip compressed as well. The path to a user-provided CELLEX dataset can be put here. Otherwise, two CELLEX datasets are included in the package, which can also be used. Set "cellex_data = 1" (default) for tabula_muris cellex dataset, set "cellex_data = 2" for gtex_v8 cellex dataset.}
+
+\item{p_value}{If TRUE, calculates and outputs the p-value (for the selected test statistic) for the expression specificity analysis. Defaults to TRUE.}
+
+\item{p_value_adjust}{If TRUE, adjusts the calculated p-values for multiple testing, using the FDR approach. Defaults to TRUE.}
+
+\item{emp_p_value}{If TRUE, calculates empirical p-values by randomly sampling a number of genes from the CELLEX dataset equivalent to the number of genes in the input_set, which is repeated a number of times (see parameter "reps") to obtain a null distribution. The null distribution is then compared to the test statistic for the genes in the input_set. Related parameters: "reps", "num_cores", "num_background_genes", "statistic_plot".}
+
+\item{es_value}{If TRUE, calculates enrichment scores for the input_set for each cell type / tissue type in the CELLEX. Uses ssGSEA approach implemented in the R package GSVA.}
+
+\item{first_order}{If TRUE, obtain the first order network for the input genes / proteins, and use for the analysis. Defaults to FALSE.}
+
+\item{all_genes_as_background}{If TRUE, use all genes in the CELLEX dataset as background for analysis. If FALSE, use all genes in the CELLEX dataset which are not in the input_set, as background for analysis.}
+
+\item{statistic}{Which test statistic to use. One of "W" (Wilcoxon test), "KS" (Kolmogorov–Smirnov test), or "T" (Student's t-test). Defaults to "W".}
+
+\item{reps}{Default is 1000. The number of random samplings to perform when computing the null distribution that is used to calculate the empirical p-value (see parameter "emp_p_value").}
+
+\item{num_cores}{Default is 1. The number of cores/threads to use when computing the null distribution for the empirical p-value (see parameter "emp_p_value").}
+
+\item{num_background_genes}{Default is 0 (which means to use all background genes). The number of background genes to use when computing the null distribution for the empirical p-value (see parameter "emp_p_value").}
+
+\item{statistic_plot}{Default is FALSE. Whether to plot (TRUE) or not plot (FALSE) the null distribution and the analytical test statistic for the most significant cell type.}
+
+\item{save_output}{Default is TRUE. Whether to save (TRUE) or not save (FALSE) the output of the tool. If TRUE, the tool saves the output dataframe as a .csv file.}
 }
 \description{
 This function takes as input a gene set (in ENSEMBL, UNIPROT, or HNGC format) and performs
 enrichment analysis / gene specificity analysis and outputs a dataframe with p-values and/or
-scores indicating how specifically expressed the gene set is in different cell types.
+scores indicating how specifically expressed the gene set is in different cell types. The
+p-values are calculated by comparing the CELLEX values for the input gene set to the CELLEX values
+for the background gene set.
 }
