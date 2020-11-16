@@ -625,10 +625,10 @@ cellex_analysis <- function(input_set, # input gene set or protein set.
   # Load cellex data.
   message("\nLoading CELLEX data...")
   if(cellex_data[1] == 1) {
-    cellex_data <- system.file("extdata", "tabula_muris.esmu.csv.gz", package = "cellex.enrichment.analysis")
+    cellex_data <- system.file("extdata", "tabula_muris.esmu.csv.gz", package = "cellex.analysis")
     cellex_data <- readr::read_csv(gzfile(cellex_data))
   } else if(cellex_data[1] == 2) {
-    cellex_data <- system.file("extdata", "gtex_v8_filtered_normLog_all.esmu.csv.gz", package = "cellex.enrichment.analysis")
+    cellex_data <- system.file("extdata", "gtex_v8_filtered_normLog_all.esmu.csv.gz", package = "cellex.analysis")
     cellex_data <- readr::read_csv(gzfile(cellex_data))
   } else if(is_cellex_compressed) {
     cellex_data <- readr::read_csv(gzfile(cellex_data))
