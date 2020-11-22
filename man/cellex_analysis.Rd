@@ -7,7 +7,7 @@
 cellex_analysis(
   input_set,
   input_type = c("ensembl", "uniprot", "gene"),
-  cellex_data = c(1, 2),
+  cellex_data = c(1, 2, 3),
   p_value = TRUE,
   p_value_adjust = TRUE,
   emp_p_value = FALSE,
@@ -27,7 +27,7 @@ cellex_analysis(
 
 \item{input_type}{What format the input_set is in. One of "ensembl" (ENSEMBL format), "uniprot" (UNIPROT format), or "gene" (HGNC format). Defaults to "ensembl" if no user specified value is selected.}
 
-\item{cellex_data}{The CELLEX dataset to use in the package - must be in .csv format, and can also be gzip compressed as well. The path to a user-provided CELLEX dataset can be put here. Otherwise, two CELLEX datasets are included in the package, which can also be used. Set "cellex_data = 1" (default) for tabula_muris cellex dataset, set "cellex_data = 2" for gtex_v8 cellex dataset.}
+\item{cellex_data}{The CELLEX dataset to use in the package - must be in .csv format, and can also be gzip compressed as well. The path to a user-provided CELLEX dataset can be put here. Otherwise, three CELLEX datasets are included in the package, which can also be used. Set "cellex_data = 1" (default) for tabula_muris cellex dataset, set "cellex_data = 2" for gtex_v8 cellex dataset, or set "cellex_data = 3 for human cell landscape (HCL) cellex dataset.}
 
 \item{p_value}{If TRUE, calculates and outputs the p-value (for the selected test statistic) for the expression specificity analysis. Defaults to TRUE.}
 

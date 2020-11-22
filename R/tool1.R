@@ -600,7 +600,7 @@ plot_box <- function(output, subset, cellex_data, n_tissues = 10, param = "ESmu"
 #'
 #' @param input_set Gene set or protein set, as a character vector.
 #' @param input_type What format the input_set is in. One of "ensembl" (ENSEMBL format), "uniprot" (UNIPROT format), or "gene" (HGNC format). Defaults to "ensembl" if no user specified value is selected.
-#' @param cellex_data The CELLEX dataset to use in the package - must be in .csv format, and can also be gzip compressed as well. The path to a user-provided CELLEX dataset can be put here. Otherwise, two CELLEX datasets are included in the package, which can also be used. Set "cellex_data = 1" (default) for tabula_muris cellex dataset, set "cellex_data = 2" for gtex_v8 cellex dataset.
+#' @param cellex_data The CELLEX dataset to use in the package - must be in .csv format, and can also be gzip compressed as well. The path to a user-provided CELLEX dataset can be put here. Otherwise, three CELLEX datasets are included in the package, which can also be used. Set "cellex_data = 1" (default) for tabula_muris cellex dataset, set "cellex_data = 2" for gtex_v8 cellex dataset, or set "cellex_data = 3 for human cell landscape (HCL) cellex dataset.
 #' @param first_order If TRUE, obtain the first order network for the input genes / proteins, and use for the analysis. Defaults to FALSE.
 #' @param all_genes_as_background If TRUE, use all genes in the CELLEX dataset as background for analysis. If FALSE, use all genes in the CELLEX dataset which are not in the input_set, as background for analysis.
 #' @param statistic Which test statistic to use. One of "W" (Wilcoxon test), "KS" (Kolmogorov–Smirnov test), or "T" (Student's t-test). Defaults to "W".
@@ -617,7 +617,7 @@ plot_box <- function(output, subset, cellex_data, n_tissues = 10, param = "ESmu"
 #' @export
 cellex_analysis <- function(input_set, # input gene set or protein set.
                             input_type = c("ensembl", "uniprot", "gene"),
-                            cellex_data = c(1, 2),
+                            cellex_data = c(1, 2, 3),
                             p_value = TRUE,
                             p_value_adjust = TRUE,
                             emp_p_value = FALSE,
@@ -655,17 +655,13 @@ cellex_analysis <- function(input_set, # input gene set or protein set.
   # Load cellex data.
   message("\nLoading CELLEX data...")
   if(cellex_data[1] == 1) {
-    cellex_data <- system.file("cellex_data", "tabula_muris.gz", package = "cellex.analysis")
-    cellex_data <- readr::read_csv(gzfile(cellex_data))
+    cellex_data <- readr::read_csv(system.file("cellex_data", "tabula_muris.gz", package = "cellex.analysis"))
   } else if(cellex_data[1] == 2) {
-    cellex_data <- system.file("cellex_data", "gtex_v8.gz", package = "cellex.analysis")
-    cellex_data <- readr::read_csv(gzfile(cellex_data))
+    cellex_data <- readr::read_csv(system.file("cellex_data", "gtex_v8.gz", package = "cellex.analysis"))
+  } else if(cellex_data[1] == 3) {
+    cellex_data <- readr::read_csv(system.file("cellex_data", "hcl.gz", package = "cellex.analysis"))
   } else {
-    if((substr(cellex_data, start = nchar(cellex_data)-2, stop = nchar(cellex_data)) == ".gz") | (substr(cellex_data, start = nchar(cellex_data)-2, stop = nchar(cellex_data)) == ".GZ")){
-      cellex_data <- readr::read_csv(gzfile(cellex_data))
-    } else {
-      cellex_data <- readr::read_csv(cellex_data)
-    }
+    cellex_data <- readr::read_csv(cellex_data)
   }
 
   # Choose subset genes and background genes.
