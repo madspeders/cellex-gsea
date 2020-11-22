@@ -30,6 +30,9 @@ get_alias <- function(input,
         alias_df <- alias_df %>%
           dplyr::arrange(desc(hgnc_symbol), desc(uniprotswissprot)) %>%
           dplyr::distinct(ensembl_gene_id, .keep_all = TRUE)
+        alias_df <- alias_df %>%
+          dplyr::arrange(hgnc_symbol, ensembl_gene_id) %>%
+          dplyr::distinct(hgnc_symbol, .keep_all = TRUE)
         missing <- input[!(input %in% alias_df$ensembl_gene_id)]
         alias_df <- alias_df %>% dplyr::add_row(data.frame(ensembl_gene_id = missing,
                                                            hgnc_symbol = rep("", length(missing)),
@@ -41,10 +44,13 @@ get_alias <- function(input,
         alias_df <- alias_df %>%
           dplyr::arrange(desc(hgnc_symbol), desc(uniprotswissprot)) %>%
           dplyr::distinct(ensembl_gene_id, .keep_all = TRUE)
+        alias_df <- alias_df %>%
+          dplyr::arrange(hgnc_symbol, ensembl_gene_id) %>%
+          dplyr::distinct(hgnc_symbol, .keep_all = TRUE)
         missing <- input[!(input %in% alias_df$hgnc_symbol)]
-        alias_df <- alias_df %>% dplyr::add_row(data.frame(ensembl_gene_id = length(missing)),
-                                                hgnc_symbol = rep("", missing,
-                                                                  uniprotswissprot = rep("", length(missing))))
+        alias_df <- alias_df %>% dplyr::add_row(data.frame(ensembl_gene_id = rep("", length(missing)),
+                                                hgnc_symbol = missing,
+                                                uniprotswissprot = rep("", length(missing))))
       } else if(input_type[1] == "uniprot"){
         ensembl <- biomaRt::useEnsembl(biomart = "ensembl", dataset = ensembl_dataset, verbose = ensembl_verbose)
         alias_df <- biomaRt::getBM(attributes = c("ensembl_gene_id", "hgnc_symbol", "uniprotswissprot"),
@@ -52,10 +58,13 @@ get_alias <- function(input,
         alias_df <- alias_df %>%
           dplyr::arrange(desc(hgnc_symbol), desc(uniprotswissprot)) %>%
           dplyr::distinct(ensembl_gene_id, .keep_all = TRUE)
+        alias_df <- alias_df %>%
+          dplyr::arrange(hgnc_symbol, ensembl_gene_id) %>%
+          dplyr::distinct(hgnc_symbol, .keep_all = TRUE)
         missing <- input[!(input %in% alias_df$uniprotswissprot)]
-        alias_df <- alias_df %>% dplyr::add_row(data.frame(ensembl_gene_id = length(missing)),
+        alias_df <- alias_df %>% dplyr::add_row(data.frame(ensembl_gene_id = rep("", length(missing)),
                                                 hgnc_symbol = rep("", length(missing)),
-                                                uniprotswissprot = rep("", missing))
+                                                uniprotswissprot = missing))
       }
     )
 
@@ -185,7 +194,8 @@ ssgsea <- function(data, geneSet, alpha=0.25, n_cores = 1){
   es <- matrix(es, nrow=1)
 
   # Normalization of values.
-  es <- apply(es, 2, function(x, es) x / max(es), es)
+  #es <- apply(es, 2, function(x, es) x / max(es), es) # approach 1.
+  es <- apply(es, 2, function(x, es) (x - min(es)) / (max(es) - min(es)), es) # approach 2.
   es <- matrix(es, nrow=1)
 
   # Output.
@@ -415,6 +425,10 @@ statistical_test <- function(data,
     names(p_z_val_out) <- c("p.value", "Z.value")
     p_val_out <- p_z_val_out$p.value
     z_val_out <- p_z_val_out$Z.value
+    if(z_val_norm){
+      #z_val_out <- z_val_out / max(z_val_out) # approach 1
+      z_val_out <- (z_val_out - min(z_val_out)) / (max(z_val_out) - min(z_val_out)) # approach 2
+    }
 
     p_val_out[p_val_out > 1] <- 1.0
     p_val_out[p_val_out == 0] <- 1 / n_rep
@@ -641,10 +655,10 @@ cellex_analysis <- function(input_set, # input gene set or protein set.
   # Load cellex data.
   message("\nLoading CELLEX data...")
   if(cellex_data[1] == 1) {
-    cellex_data <- system.file("extdata", "tabula_muris.esmu.csv.gz", package = "cellex.analysis")
+    cellex_data <- system.file("cellex_data", "tabula_muris.gz", package = "cellex.analysis")
     cellex_data <- readr::read_csv(gzfile(cellex_data))
   } else if(cellex_data[1] == 2) {
-    cellex_data <- system.file("extdata", "gtex_v8_filtered_normLog_all.esmu.csv.gz", package = "cellex.analysis")
+    cellex_data <- system.file("cellex_data", "gtex_v8.gz", package = "cellex.analysis")
     cellex_data <- readr::read_csv(gzfile(cellex_data))
   } else {
     if((substr(cellex_data, start = nchar(cellex_data)-2, stop = nchar(cellex_data)) == ".gz") | (substr(cellex_data, start = nchar(cellex_data)-2, stop = nchar(cellex_data)) == ".GZ")){

@@ -17,11 +17,11 @@ Follow these to run an analysis of a input gene set using the function:
 1. Load the package using:  
 ```R
 library(cellex.analysis)
-```  
+```
 
 2. Save your gene set (in ENSEMBL or HGNC format) or protein set (in UNIPROT format) as a variable. A gene set that is enriched in the liver (obtained from the Human Protein Atlas, [proteinatlas.org](https://www.proteinatlas.org/)) is already included in the package, and can be loaded with the following command:
 ```R
-gene_set <- readRDS(system.file("extdata", "liver_gene_set.rds", package = "cellex.analysis"))
+gene_set <- readRDS(system.file("gene_set_data", "liver.rds", package = "cellex.analysis"))
 ```
 
 3. Run the tool #1 analysis. If the input is in ENSEMBL format, you only need to supply the input gene set, as such:
@@ -38,12 +38,12 @@ The input gene set is not always in ENSEMBL format. Therefore, the argument `inp
 * **If the input set is in UNIPROT format:**  
 ```R
 cellex_analysis(gene_set, input_type = "uniprot")
-```  
+```
 
 * **If the input set is in HGNC format:**
 ```R
 cellex_analysis(gene_set, input_type = "gene")
-```  
+```
 
 ### Using other CELLEX datasets  
 The used CELLEX dataset can be provided by the user (so setting the argument `cellex_data` equal to the path to the dataset), or one of two datasets included in the package. Set the argument `cellex_data` equal to **1** to use the Tabula Muris CELLEX dataset, or set equal to **2** to use the GTEX_v8 CELLEX dataset.  
