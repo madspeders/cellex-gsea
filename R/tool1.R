@@ -30,9 +30,9 @@ get_alias <- function(input,
         alias_df <- alias_df %>%
           dplyr::arrange(desc(hgnc_symbol), desc(uniprotswissprot)) %>%
           dplyr::distinct(ensembl_gene_id, .keep_all = TRUE)
-        alias_df <- alias_df %>%
-          dplyr::arrange(hgnc_symbol, ensembl_gene_id) %>%
-          dplyr::distinct(hgnc_symbol, .keep_all = TRUE)
+        # alias_df <- alias_df %>%
+        #   dplyr::arrange(hgnc_symbol, ensembl_gene_id) %>%
+        #   dplyr::distinct(hgnc_symbol, .keep_all = TRUE)
         missing <- input[!(input %in% alias_df$ensembl_gene_id)]
         alias_df <- alias_df %>% dplyr::add_row(data.frame(ensembl_gene_id = missing,
                                                            hgnc_symbol = rep("", length(missing)),
@@ -42,11 +42,11 @@ get_alias <- function(input,
         alias_df <- biomaRt::getBM(attributes = c("ensembl_gene_id", "hgnc_symbol", "uniprotswissprot"),
                                    filters = "hgnc_symbol", values = input, mart = ensembl)
         alias_df <- alias_df %>%
-          dplyr::arrange(desc(hgnc_symbol), desc(uniprotswissprot)) %>%
+          dplyr::arrange(hgnc_symbol, desc(uniprotswissprot)) %>%
           dplyr::distinct(ensembl_gene_id, .keep_all = TRUE)
-        alias_df <- alias_df %>%
-          dplyr::arrange(hgnc_symbol, ensembl_gene_id) %>%
-          dplyr::distinct(hgnc_symbol, .keep_all = TRUE)
+        # alias_df <- alias_df %>%
+        #   dplyr::arrange(hgnc_symbol, ensembl_gene_id) %>%
+        #   dplyr::distinct(hgnc_symbol, .keep_all = TRUE)
         missing <- input[!(input %in% alias_df$hgnc_symbol)]
         alias_df <- alias_df %>% dplyr::add_row(data.frame(ensembl_gene_id = rep("", length(missing)),
                                                 hgnc_symbol = missing,
@@ -58,9 +58,9 @@ get_alias <- function(input,
         alias_df <- alias_df %>%
           dplyr::arrange(desc(hgnc_symbol), desc(uniprotswissprot)) %>%
           dplyr::distinct(ensembl_gene_id, .keep_all = TRUE)
-        alias_df <- alias_df %>%
-          dplyr::arrange(hgnc_symbol, ensembl_gene_id) %>%
-          dplyr::distinct(hgnc_symbol, .keep_all = TRUE)
+        # alias_df <- alias_df %>%
+        #   dplyr::arrange(hgnc_symbol, ensembl_gene_id) %>%
+        #   dplyr::distinct(hgnc_symbol, .keep_all = TRUE)
         missing <- input[!(input %in% alias_df$uniprotswissprot)]
         alias_df <- alias_df %>% dplyr::add_row(data.frame(ensembl_gene_id = rep("", length(missing)),
                                                 hgnc_symbol = rep("", length(missing)),
@@ -592,7 +592,7 @@ plot_box <- function(output, subset, cellex_data, n_tissues = 10, param = "ESmu"
 
 #' Perform Enrichment Analysis
 #'
-#' This function takes as input a gene set (in ENSEMBL, UNIPROT, or HNGC format) and performs
+#' This function takes as input a gene set (in ENSEMBL, UNIPROT, or HGNC format) and performs
 #' enrichment analysis / gene specificity analysis and outputs a dataframe with p-values and/or
 #' scores indicating how specifically expressed the gene set is in different cell types. The
 #' p-values are calculated by comparing the CELLEX values for the input gene set to the CELLEX values
@@ -636,7 +636,7 @@ cellex_analysis <- function(input_set, # input gene set or protein set.
 
   # Obtain aliases for the input gene set.
   #source("gene_set.R")
-  message("Using BioMart to obtain ENSEMBL, UNIPROT and HNGC names...")
+  message("Using BioMart to obtain ENSEMBL, UNIPROT and HGNC names...")
   gene_set <- get_alias(input = input_set, input_type = input_type)
   message("Done!")
 
@@ -718,9 +718,6 @@ cellex_analysis <- function(input_set, # input gene set or protein set.
     plot_box(output, subset_genes, cellex_data)
 
     message("Done!")
-
-    message("\nOutput:\n")
-    output
 
     return(output)
   }

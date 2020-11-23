@@ -54,7 +54,7 @@ cellex_analysis(
 \item{save_output}{Default is TRUE. Whether to save (TRUE) or not save (FALSE) the output of the tool. If TRUE, the tool saves the output dataframe as a .csv file.}
 }
 \description{
-This function takes as input a gene set (in ENSEMBL, UNIPROT, or HNGC format) and performs
+This function takes as input a gene set (in ENSEMBL, UNIPROT, or HGNC format) and performs
 enrichment analysis / gene specificity analysis and outputs a dataframe with p-values and/or
 scores indicating how specifically expressed the gene set is in different cell types. The
 p-values are calculated by comparing the CELLEX values for the input gene set to the CELLEX values
