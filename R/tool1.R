@@ -216,7 +216,6 @@ statistical_test <- function(data,
                              emp_p_val = FALSE,
                              es_val = FALSE,
                              plot = FALSE,
-                             z_val_norm = FALSE,
                              n_rep = 1000,
                              n_cores = 1,
                              n_background = 0){
@@ -380,8 +379,8 @@ statistical_test <- function(data,
     # Generate analytical test statistics.
     output <- parallel::mclapply(names, mc.cores = n_cores, FUN = function(col){
       if(stat_test[1] == "W"){
-        test <- wilcox.test(x = data[subset, col], # original: data[subset, col] # data[unlist(data[subset, col]) != 0, col]
-                            y = data[background, col]) # original: data[background, col] # data[unlist(data[background, col]) != 0, col]
+        test <- wilcox.test(x = data[subset, col],
+                            y = data[background, col])
         df.test <- broom::tidy(test)
       } else if(stat_test[1] == "T"){
         test <- t.test(x = data[subset, col],
@@ -665,20 +664,12 @@ cellex_analysis <- function(input_set, # input gene set or protein set.
     cellex_data <- readr::read_csv(cellex_data)
   }
 
-  # Criteria for which genes to use:
-  # idx <- sapply(1:nrow(cellex_data), FUN = function(row_num){
-  #   row <- sort(unlist(cellex_data[row_num,-1], use.names = FALSE), decreasing = TRUE)
-  #   return( any(row > 0.5) & any((max(row) / mean(row)) > 10) & (row[1] / row[2]) > 1.1 & (sum(test != 0) / sum(test == 0)) < 1/3 )
-  # })
-  # good_genes <- unlist(cellex_data[idx,1], use.names = FALSE)
-
   # Choose subset genes and background genes.
   subset_genes <- cellex_data$gene[cellex_data$gene %in% gene_set$ensembl_gene_id]
-  subset_genes <- intersect(subset_genes, good_genes) # MAYBE
   if(all_genes_as_background){
     background_genes <- cellex_data$gene
   } else {
-    background_genes <- cellex_data$gene[!(cellex_data$gene %in% subset_genes)]
+    background_genes <- cellex_data$gene[!(cellex_data$gene %in% gene_set$ensembl_gene_id)]
   }
 
   gene_set <- gene_set %>% dplyr::filter(ensembl_gene_id %in% subset_genes)
