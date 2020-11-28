@@ -18,61 +18,60 @@ get_alias <- function(input,
                       return_only_ensembl = FALSE
 ){
 
-  loop <- TRUE
+  loop <- 20
 
-  while(loop){
+  while(loop != 0){
     ### Regarding biomaRt ###
     try(
-      if(input_type[1] == "ensembl"){
-        ensembl <- biomaRt::useEnsembl(biomart = "ensembl", dataset = ensembl_dataset, verbose = ensembl_verbose)
-        alias_df <- biomaRt::getBM(attributes = c("ensembl_gene_id", "hgnc_symbol", "uniprotswissprot"),
-                                   filters = "ensembl_gene_id", values = input, mart = ensembl)
-        alias_df <- alias_df %>%
-          dplyr::arrange(desc(hgnc_symbol), desc(uniprotswissprot)) %>%
-          dplyr::distinct(ensembl_gene_id, .keep_all = TRUE)
-        # alias_df <- alias_df %>%
-        #   dplyr::arrange(hgnc_symbol, ensembl_gene_id) %>%
-        #   dplyr::distinct(hgnc_symbol, .keep_all = TRUE)
-        missing <- input[!(input %in% alias_df$ensembl_gene_id)]
-        alias_df <- alias_df %>% dplyr::add_row(data.frame(ensembl_gene_id = missing,
-                                                           hgnc_symbol = rep("", length(missing)),
-                                                           uniprotswissprot = rep("", length(missing))))
-      } else if(input_type[1] == "gene"){
-        ensembl <- biomaRt::useEnsembl(biomart = "ensembl", dataset = ensembl_dataset, verbose = ensembl_verbose)
-        alias_df <- biomaRt::getBM(attributes = c("ensembl_gene_id", "hgnc_symbol", "uniprotswissprot"),
-                                   filters = "hgnc_symbol", values = input, mart = ensembl)
-        alias_df <- alias_df %>%
-          dplyr::arrange(hgnc_symbol, desc(uniprotswissprot)) %>%
-          dplyr::distinct(ensembl_gene_id, .keep_all = TRUE)
-        # alias_df <- alias_df %>%
-        #   dplyr::arrange(hgnc_symbol, ensembl_gene_id) %>%
-        #   dplyr::distinct(hgnc_symbol, .keep_all = TRUE)
-        missing <- input[!(input %in% alias_df$hgnc_symbol)]
-        alias_df <- alias_df %>% dplyr::add_row(data.frame(ensembl_gene_id = rep("", length(missing)),
-                                                hgnc_symbol = missing,
-                                                uniprotswissprot = rep("", length(missing))))
-      } else if(input_type[1] == "uniprot"){
-        ensembl <- biomaRt::useEnsembl(biomart = "ensembl", dataset = ensembl_dataset, verbose = ensembl_verbose)
-        alias_df <- biomaRt::getBM(attributes = c("ensembl_gene_id", "hgnc_symbol", "uniprotswissprot"),
-                                   filters = "uniprotswissprot", values = input, mart = ensembl)
-        alias_df <- alias_df %>%
-          dplyr::arrange(desc(hgnc_symbol), desc(uniprotswissprot)) %>%
-          dplyr::distinct(ensembl_gene_id, .keep_all = TRUE)
-        # alias_df <- alias_df %>%
-        #   dplyr::arrange(hgnc_symbol, ensembl_gene_id) %>%
-        #   dplyr::distinct(hgnc_symbol, .keep_all = TRUE)
-        missing <- input[!(input %in% alias_df$uniprotswissprot)]
-        alias_df <- alias_df %>% dplyr::add_row(data.frame(ensembl_gene_id = rep("", length(missing)),
-                                                hgnc_symbol = rep("", length(missing)),
-                                                uniprotswissprot = missing))
-      }
+      ensembl <- biomaRt::useEnsembl(biomart = "ensembl", dataset = ensembl_dataset, verbose = ensembl_verbose)
     )
 
-
-    if(exists("alias_df")){
-      loop <- FALSE
+    if(exists("ensembl")){
+      loop <- 0
+    } else {
+      loop <- loop - 1
     }
+  }
 
+  if(input_type[1] == "ensembl"){
+    alias_df <- biomaRt::getBM(attributes = c("ensembl_gene_id", "hgnc_symbol", "uniprotswissprot"),
+                               filters = "ensembl_gene_id", values = input, mart = ensembl)
+    alias_df <- alias_df %>%
+      dplyr::arrange(desc(hgnc_symbol), desc(uniprotswissprot)) %>%
+      dplyr::distinct(ensembl_gene_id, .keep_all = TRUE)
+    # alias_df <- alias_df %>%
+    #   dplyr::arrange(hgnc_symbol, ensembl_gene_id) %>%
+    #   dplyr::distinct(hgnc_symbol, .keep_all = TRUE)
+    missing <- input[!(input %in% alias_df$ensembl_gene_id)]
+    alias_df <- alias_df %>% dplyr::add_row(data.frame(ensembl_gene_id = missing,
+                                                       hgnc_symbol = rep("", length(missing)),
+                                                       uniprotswissprot = rep("", length(missing))))
+  } else if(input_type[1] == "gene"){
+    alias_df <- biomaRt::getBM(attributes = c("ensembl_gene_id", "hgnc_symbol", "uniprotswissprot"),
+                               filters = "hgnc_symbol", values = input, mart = ensembl)
+    alias_df <- alias_df %>%
+      dplyr::arrange(hgnc_symbol, desc(uniprotswissprot)) %>%
+      dplyr::distinct(ensembl_gene_id, .keep_all = TRUE)
+    # alias_df <- alias_df %>%
+    #   dplyr::arrange(hgnc_symbol, ensembl_gene_id) %>%
+    #   dplyr::distinct(hgnc_symbol, .keep_all = TRUE)
+    missing <- input[!(input %in% alias_df$hgnc_symbol)]
+    alias_df <- alias_df %>% dplyr::add_row(data.frame(ensembl_gene_id = rep("", length(missing)),
+                                            hgnc_symbol = missing,
+                                            uniprotswissprot = rep("", length(missing))))
+  } else if(input_type[1] == "uniprot"){
+    alias_df <- biomaRt::getBM(attributes = c("ensembl_gene_id", "hgnc_symbol", "uniprotswissprot"),
+                               filters = "uniprotswissprot", values = input, mart = ensembl)
+    alias_df <- alias_df %>%
+      dplyr::arrange(desc(hgnc_symbol), desc(uniprotswissprot)) %>%
+      dplyr::distinct(ensembl_gene_id, .keep_all = TRUE)
+    # alias_df <- alias_df %>%
+    #   dplyr::arrange(hgnc_symbol, ensembl_gene_id) %>%
+    #   dplyr::distinct(hgnc_symbol, .keep_all = TRUE)
+    missing <- input[!(input %in% alias_df$uniprotswissprot)]
+    alias_df <- alias_df %>% dplyr::add_row(data.frame(ensembl_gene_id = rep("", length(missing)),
+                                            hgnc_symbol = rep("", length(missing)),
+                                            uniprotswissprot = missing))
   }
 
   alias_df <- alias_df %>% dplyr::filter(ensembl_gene_id != "")
@@ -116,15 +115,17 @@ first_order_network <- function(input,
 
 
   ### Regarding biomaRt ###
-  loop <- TRUE
+  loop <- 20
 
-  while(loop){
+  while(loop != 0){
     try(
       ensembl <- biomaRt::useEnsembl(biomart = "ensembl", dataset = ensembl_dataset, verbose = ensembl_verbose)
     )
 
     if(exists("ensembl")){
-      loop <- FALSE
+      loop <- 0
+    } else {
+      loop <- loop - 1
     }
   }
 
@@ -140,6 +141,7 @@ first_order_network <- function(input,
                                           uniprotswissprot = missing)
 
   alias_df <- alias_df %>% dplyr::filter(ensembl_gene_id != "")
+  rm(ensembl)
 
   if(return_only_ensembl){
     return(alias_df$ensembl_gene_id)
@@ -216,6 +218,7 @@ statistical_test <- function(data,
                              emp_p_val = FALSE,
                              es_val = FALSE,
                              plot = FALSE,
+                             z_val_norm = FALSE,
                              n_rep = 1000,
                              n_cores = 1,
                              n_background = 0){
@@ -379,8 +382,8 @@ statistical_test <- function(data,
     # Generate analytical test statistics.
     output <- parallel::mclapply(names, mc.cores = n_cores, FUN = function(col){
       if(stat_test[1] == "W"){
-        test <- wilcox.test(x = data[subset, col],
-                            y = data[background, col])
+        test <- wilcox.test(x = data[subset, col], # original: data[subset, col] # data[unlist(data[subset, col]) != 0, col]
+                            y = data[background, col]) # original: data[background, col] # data[unlist(data[background, col]) != 0, col]
         df.test <- broom::tidy(test)
       } else if(stat_test[1] == "T"){
         test <- t.test(x = data[subset, col],
@@ -664,12 +667,20 @@ cellex_analysis <- function(input_set, # input gene set or protein set.
     cellex_data <- readr::read_csv(cellex_data)
   }
 
+  # Criteria for which genes to use:
+  # idx <- sapply(1:nrow(cellex_data), FUN = function(row_num){
+  #   row <- sort(unlist(cellex_data[row_num,-1], use.names = FALSE), decreasing = TRUE)
+  #   return( any(row > 0.5) & any((max(row) / mean(row)) > 10) & (row[1] / row[2]) > 1.1 & (sum(test != 0) / sum(test == 0)) < 1/3 )
+  # })
+  # good_genes <- unlist(cellex_data[idx,1], use.names = FALSE)
+
   # Choose subset genes and background genes.
   subset_genes <- cellex_data$gene[cellex_data$gene %in% gene_set$ensembl_gene_id]
+  # subset_genes <- intersect(subset_genes, good_genes) # MAYBE
   if(all_genes_as_background){
     background_genes <- cellex_data$gene
   } else {
-    background_genes <- cellex_data$gene[!(cellex_data$gene %in% gene_set$ensembl_gene_id)]
+    background_genes <- cellex_data$gene[!(cellex_data$gene %in% subset_genes)]
   }
 
   gene_set <- gene_set %>% dplyr::filter(ensembl_gene_id %in% subset_genes)
