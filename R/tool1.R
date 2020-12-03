@@ -253,45 +253,40 @@ statistical_test <- function(data,
     })
 
     if(stat_test[1] == "W"){
+      # Old approach to calculate null test statistics.
+      # stat_df_list <- parallel::mclapply(X = 1:n_rep, mc.cores = n_cores, FUN = function(i){
+      #   stat_vec <- numeric(length(names))
+      #   for(j in 1:length(stat_vec)){
+      #     stat_vec[j] <- wilcox.test(x = data[to_sample[,i],j],
+      #                                y = data[!(rownames(data) %in% to_sample[,i]),j])$statistic
+      #   }
+      #   return(stat_vec)
+      # })
+
+      # New approach to calculate null test statistics.
       stat_df_list <- parallel::mclapply(X = 1:n_rep, mc.cores = n_cores, FUN = function(i){
-        stat_vec <- numeric(length(names))
-        for(j in 1:length(stat_vec)){
-          stat_vec[j] <- wilcox.test(x = data[to_sample[,i],j],
-                                     y = data[!(rownames(data) %in% to_sample[,i]),j])$statistic
-        }
+        stat_vec <- matrixTests::col_wilcoxon_twosample(x = data[to_sample[,i],],
+                                                        y = data[!(rownames(data) %in% to_sample[,i]),])$statistic
         return(stat_vec)
       })
-
-      if(n_rep > 1) {
-        stat_df <- Reduce(rbind, stat_df_list)
-        colnames(stat_df) <- names
-        stat_df <- tibble::tibble(as.data.frame(stat_df))
-      } else {
-        stat_df <- t(Reduce(rbind, stat_df_list))
-        colnames(stat_df) <- names
-        stat_df <- tibble::tibble(as.data.frame(stat_df))
-      }
-
 
     } else if(stat_test[1] == "T"){
+      # Old approach to calculate null test statistics.
+      # stat_df_list <- parallel::mclapply(X = 1:n_rep, mc.cores = n_cores, FUN = function(i){
+      #   stat_vec <- numeric(length(names))
+      #   for(j in 1:length(stat_vec)){
+      #     stat_vec[j] <- t.test(x = data[(to_sample[,i]),j],
+      #                           y = data[!(rownames(data) %in% to_sample[,i]),j])$statistic
+      #   }
+      #   return(stat_vec)
+      # })
+
+      # New approach to calculate null test statistics.
       stat_df_list <- parallel::mclapply(X = 1:n_rep, mc.cores = n_cores, FUN = function(i){
-        stat_vec <- numeric(length(names))
-        for(j in 1:length(stat_vec)){
-          stat_vec[j] <- t.test(x = data[(to_sample[,i]),j],
-                                y = data[!(rownames(data) %in% to_sample[,i]),j])$statistic
-        }
+        stat_vec <- matrixTests::col_t_welch(x = data[to_sample[,i],],
+                                             y = data[!(rownames(data) %in% to_sample[,i]),])$statistic
         return(stat_vec)
       })
-
-      if(n_rep > 1) {
-        stat_df <- Reduce(rbind, stat_df_list)
-        colnames(stat_df) <- names
-        stat_df <- tibble::tibble(as.data.frame(stat_df))
-      } else {
-        stat_df <- t(Reduce(rbind, stat_df_list))
-        colnames(stat_df) <- names
-        stat_df <- tibble::tibble(as.data.frame(stat_df))
-      }
 
     } else if(stat_test[1] == "KS"){
       stat_df_list <- parallel::mclapply(X = 1:n_rep, mc.cores = n_cores, FUN = function(i){
@@ -303,18 +298,17 @@ statistical_test <- function(data,
         return(stat_vec)
       })
 
-      if(n_rep > 1) {
-        stat_df <- Reduce(rbind, stat_df_list)
-        colnames(stat_df) <- names
-        stat_df <- tibble::tibble(as.data.frame(stat_df))
-      } else {
-        stat_df <- t(Reduce(rbind, stat_df_list))
-        colnames(stat_df) <- names
-        stat_df <- tibble::tibble(as.data.frame(stat_df))
-      }
-
     }
 
+    if(n_rep > 1) {
+      stat_df <- Reduce(rbind, stat_df_list)
+      colnames(stat_df) <- names
+      stat_df <- tibble::tibble(as.data.frame(stat_df))
+    } else {
+      stat_df <- t(Reduce(rbind, stat_df_list))
+      colnames(stat_df) <- names
+      stat_df <- tibble::tibble(as.data.frame(stat_df))
+    }
 
   } else if(emp_p_val & n_background != 0) {
     # Use only a smaller selection of the background genes instead of all of them.
@@ -331,67 +325,62 @@ statistical_test <- function(data,
       return(gene_names)
     })
 
-
     if(stat_test[1] == "W"){
+      # Old approach to calculate null test statistics.
+      # stat_df_list <- parallel::mclapply(X = 1:n_rep, mc.cores = n_cores, FUN = function(i){
+      #   stat_vec <- numeric(length(names))
+      #   for(j in 1:length(stat_vec)){
+      #     stat_vec[j] <- wilcox.test(x = data[to_sample[,i],j],
+      #                                y = data[to_sample_back[,i],j])$statistic
+      #   }
+      #   return(stat_vec)
+      # })
+
+      # New approach to calculate null test statistics.
       stat_df_list <- parallel::mclapply(X = 1:n_rep, mc.cores = n_cores, FUN = function(i){
-        stat_vec <- numeric(length(names))
-        for(j in 1:length(stat_vec)){
-          stat_vec[j] <- wilcox.test(x = data[to_sample[,i],j],
-                                     y = data[to_sample_back[,i],j])$statistic
-        }
+        stat_vec <- matrixTests::col_wilcoxon_twosample(x = data[to_sample[,i],],
+                                                        y = data[to_sample_back[,i],])$statistic
         return(stat_vec)
       })
-
-      if(n_rep > 1) {
-        stat_df <- Reduce(rbind, stat_df_list)
-        colnames(stat_df) <- names
-        stat_df <- tibble::tibble(as.data.frame(stat_df))
-      } else {
-        stat_df <- t(Reduce(rbind, stat_df_list))
-        colnames(stat_df) <- names
-        stat_df <- tibble::tibble(as.data.frame(stat_df))
-      }
 
     } else if(stat_test[1] == "T"){
+      # Old approach to calculate null test statistics.
+      # stat_df_list <- parallel::mclapply(X = 1:n_rep, mc.cores = n_cores, FUN = function(i){
+      #   stat_vec <- numeric(length(names))
+      #   for(j in 1:length(stat_vec)){
+      #     stat_vec[j] <- t.test(x = data[to_sample[,i],j],
+      #                           y = data[to_sample_back[,i],j])$statistic
+      #   }
+      #   return(stat_vec)
+      # })
+
+      # New approach to calculate null test statistics.
       stat_df_list <- parallel::mclapply(X = 1:n_rep, mc.cores = n_cores, FUN = function(i){
-        stat_vec <- numeric(length(names))
-        for(j in 1:length(stat_vec)){
-          stat_vec[j] <- t.test(x = data[(to_sample[,i]),j],
-                                y = data[to_sample_back[,i],j])$statistic
-        }
+        stat_vec <- matrixTests::col_t_welch(x = data[to_sample[,i],],
+                                             y = data[to_sample_back[,i],])$statistic
         return(stat_vec)
       })
-
-      if(n_rep > 1) {
-        stat_df <- Reduce(rbind, stat_df_list)
-        colnames(stat_df) <- names
-        stat_df <- tibble::tibble(as.data.frame(stat_df))
-      } else {
-        stat_df <- t(Reduce(rbind, stat_df_list))
-        colnames(stat_df) <- names
-        stat_df <- tibble::tibble(as.data.frame(stat_df))
-      }
 
     } else if(stat_test[1] == "KS"){
       stat_df_list <- parallel::mclapply(X = 1:n_rep, mc.cores = n_cores, FUN = function(i){
         stat_vec <- numeric(length(names))
         for(j in 1:length(stat_vec)){
-          stat_vec[j] <- ks.test(x = data[(to_sample[,i]),j],
+          stat_vec[j] <- ks.test(x = data[to_sample[,i],j],
                                  y = data[to_sample_back[,i],j])$statistic
         }
         return(stat_vec)
       })
 
-      if(n_rep > 1) {
-        stat_df <- Reduce(rbind, stat_df_list)
-        colnames(stat_df) <- names
-        stat_df <- tibble::tibble(as.data.frame(stat_df))
-      } else {
-        stat_df <- t(Reduce(rbind, stat_df_list))
-        colnames(stat_df) <- names
-        stat_df <- tibble::tibble(as.data.frame(stat_df))
-      }
+    }
 
+    if(n_rep > 1) {
+      stat_df <- Reduce(rbind, stat_df_list)
+      colnames(stat_df) <- names
+      stat_df <- tibble::tibble(as.data.frame(stat_df))
+    } else {
+      stat_df <- t(Reduce(rbind, stat_df_list))
+      colnames(stat_df) <- names
+      stat_df <- tibble::tibble(as.data.frame(stat_df))
     }
 
   }
@@ -399,27 +388,30 @@ statistical_test <- function(data,
 
   if(p_val | emp_p_val) {
     # Generate analytical test statistics.
-    output <- parallel::mclapply(names, mc.cores = n_cores, FUN = function(col){
-      if(stat_test[1] == "W"){
-        test <- wilcox.test(x = data[subset, col], # original: data[subset, col] # data[unlist(data[subset, col]) != 0, col]
-                            y = data[background, col]) # original: data[background, col] # data[unlist(data[background, col]) != 0, col]
-        df.test <- broom::tidy(test)
-      } else if(stat_test[1] == "T"){
-        test <- t.test(x = data[subset, col],
-                       y = data[background, col])
-        df.test <- broom::tidy(test)
-      } else if(stat_test[1] == "KS"){
+    if(stat_test[1] == "W"){
+      output <- matrixTests::col_wilcoxon_twosample(x = data[subset,],
+                                                    y = data[background,])
+      output <- output %>%
+        rownames_to_column(var = "tissue.cell") %>%
+        as_tibble() %>%
+        dplyr::rename(p.value = pvalue)
+    } else if(stat_test[1] == "T") {
+      output <- matrixTests::col_t_welch(x = data[subset,],
+                                         y = data[background,])
+      output <- output %>%
+        rownames_to_column(var = "tissue.cell") %>%
+        as_tibble() %>%
+        dplyr::rename(p.value = pvalue)
+    } else if(stat_test[1] == "KS") {
+      output <- parallel::mclapply(names, mc.cores = n_cores, FUN = function(col){
         test <- ks.test(x = data[subset, col],
                         y = data[background, col])
         df.test <- broom::tidy(test)
-      }
-
-      df.test <- df.test %>% tibble::add_column(tissue.cell = col, .before = "statistic")
-      return(df.test)
-
-    })
-
-    output <- tibble::tibble(Reduce(rbind, output))
+        df.test <- df.test %>% tibble::add_column(tissue.cell = col, .before = "statistic")
+        return(df.test)
+      })
+      output <- tibble::tibble(Reduce(rbind, output))
+    }
 
     if(p_val){
       output <- output %>% dplyr::select(tissue.cell, statistic, p.value)
