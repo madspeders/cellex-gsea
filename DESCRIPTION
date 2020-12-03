@@ -20,5 +20,6 @@ Imports:
     parallel,
     broom,
     ggplot2,
-    tidyr
+    tidyr,
+    matrixTests
 RoxygenNote: 7.1.1

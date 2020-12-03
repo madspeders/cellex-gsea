@@ -19,7 +19,8 @@ cellex_analysis(
   num_cores = 1,
   num_background_genes = 0,
   statistic_plot = FALSE,
-  save_output = TRUE
+  save_output = TRUE,
+  download_biomart = TRUE
 )
 }
 \arguments{

@@ -15,22 +15,31 @@ get_alias <- function(input,
                       input_type = c("ensembl", "uniprot", "gene"),
                       ensembl_dataset = "hsapiens_gene_ensembl",
                       ensembl_verbose = TRUE,
-                      return_only_ensembl = FALSE
+                      return_only_ensembl = FALSE,
+                      download_biomart_data = TRUE
 ){
 
-  loop <- 20
+  if(download_biomart_data){
+    loop <- 20
 
-  while(loop != 0){
-    ### Regarding biomaRt ###
-    try(
-      ensembl <- biomaRt::useEnsembl(biomart = "ensembl", dataset = ensembl_dataset, verbose = ensembl_verbose)
-    )
+    while(loop != 0){
+      ### Regarding biomaRt ###
+      try(
+        ensembl <- biomaRt::useEnsembl(biomart = "ensembl", dataset = ensembl_dataset, verbose = ensembl_verbose)
+      )
 
-    if(exists("ensembl")){
-      loop <- 0
-    } else {
-      loop <- loop - 1
+      if(exists("ensembl")){
+        loop <- 0
+      } else {
+        loop <- loop - 1
+      }
     }
+  } else {
+    ensembl <- readRDS(system.file("biomart_data", "biomart_2020.rds", package = "cellex.analysis"))
+  }
+
+  if(!exists("ensembl")){
+    ensembl <- readRDS(system.file("biomart_data", "biomart_2020.rds", package = "cellex.analysis"))
   }
 
   if(input_type[1] == "ensembl"){
@@ -91,7 +100,8 @@ first_order_network <- function(input,
                                 col_names = c("unique_A", "unique_B"),
                                 ensembl_dataset = "hsapiens_gene_ensembl",
                                 ensembl_verbose = TRUE,
-                                return_only_ensembl = FALSE
+                                return_only_ensembl = FALSE,
+                                download_biomart_data = TRUE
 ){
   # Read in ppi data, generate graph and detect first order proteins.
   ppi_data <- readr::read_tsv(file = ppi_network, col_names = col_names)
@@ -115,18 +125,27 @@ first_order_network <- function(input,
 
 
   ### Regarding biomaRt ###
-  loop <- 20
+  if(download_biomart_data){
+    loop <- 20
 
-  while(loop != 0){
-    try(
-      ensembl <- biomaRt::useEnsembl(biomart = "ensembl", dataset = ensembl_dataset, verbose = ensembl_verbose)
-    )
+    while(loop != 0){
+      ### Regarding biomaRt ###
+      try(
+        ensembl <- biomaRt::useEnsembl(biomart = "ensembl", dataset = ensembl_dataset, verbose = ensembl_verbose)
+      )
 
-    if(exists("ensembl")){
-      loop <- 0
-    } else {
-      loop <- loop - 1
+      if(exists("ensembl")){
+        loop <- 0
+      } else {
+        loop <- loop - 1
+      }
     }
+  } else {
+    ensembl <- readRDS(system.file("biomart_data", "biomart_2020.rds", package = "cellex.analysis"))
+  }
+
+  if(!exists("ensembl")){
+    ensembl <- readRDS(system.file("biomart_data", "biomart_2020.rds", package = "cellex.analysis"))
   }
 
   alias_df <- biomaRt::getBM(attributes = c('ensembl_gene_id', "uniprotswissprot", 'hgnc_symbol'),
@@ -632,7 +651,8 @@ cellex_analysis <- function(input_set, # input gene set or protein set.
                             num_cores = 1,
                             num_background_genes = 0,
                             statistic_plot = FALSE,
-                            save_output = TRUE
+                            save_output = TRUE,
+                            download_biomart = TRUE
                             ) {
 
   set.seed(42)
@@ -640,7 +660,9 @@ cellex_analysis <- function(input_set, # input gene set or protein set.
   # Obtain aliases for the input gene set.
   #source("gene_set.R")
   message("Using BioMart to obtain ENSEMBL, UNIPROT and HGNC names...")
-  gene_set <- get_alias(input = input_set, input_type = input_type)
+  gene_set <- get_alias(input = input_set,
+                        input_type = input_type,
+                        download_biomart_data = download_biomart)
   message("Done!")
 
   # Get PPI data matching the protein names from the alias dataframe.
@@ -651,7 +673,8 @@ cellex_analysis <- function(input_set, # input gene set or protein set.
     message("\nObtaining first order network...")
     proteins <- unique(gene_set$uniprotswissprot)
     proteins <- proteins[!(proteins == "")]
-    gene_set <- first_order_network(input = proteins)
+    gene_set <- first_order_network(input = proteins,
+                                    download_biomart_data = download_biomart)
     message("Done!")
   }
 
