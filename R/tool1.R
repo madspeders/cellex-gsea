@@ -392,15 +392,15 @@ statistical_test <- function(data,
       output <- matrixTests::col_wilcoxon_twosample(x = data[subset,],
                                                     y = data[background,])
       output <- output %>%
-        rownames_to_column(var = "tissue.cell") %>%
-        as_tibble() %>%
+        tibble::rownames_to_column(var = "tissue.cell") %>%
+        tibble::as_tibble() %>%
         dplyr::rename(p.value = pvalue)
     } else if(stat_test[1] == "T") {
       output <- matrixTests::col_t_welch(x = data[subset,],
                                          y = data[background,])
       output <- output %>%
-        rownames_to_column(var = "tissue.cell") %>%
-        as_tibble() %>%
+        tibble::rownames_to_column(var = "tissue.cell") %>%
+        tibble::as_tibble() %>%
         dplyr::rename(p.value = pvalue)
     } else if(stat_test[1] == "KS") {
       output <- parallel::mclapply(names, mc.cores = n_cores, FUN = function(col){
