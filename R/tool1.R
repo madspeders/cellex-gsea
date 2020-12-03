@@ -240,7 +240,8 @@ statistical_test <- function(data,
                              z_val_norm = FALSE,
                              n_rep = 1000,
                              n_cores = 1,
-                             n_background = 0){
+                             n_background = 0,
+                             null_dist = NULL){
 
   # Set seed.
   set.seed(42)
@@ -248,67 +249,72 @@ statistical_test <- function(data,
   names <- colnames(data)
 
   if(emp_p_val & n_background == 0){
-    to_sample <- replicate(n_rep, {
-      sample(x = rownames(data), size = length(subset))
-    })
-
-    if(stat_test[1] == "W"){
-      # Old approach to calculate null test statistics.
-      # stat_df_list <- parallel::mclapply(X = 1:n_rep, mc.cores = n_cores, FUN = function(i){
-      #   stat_vec <- numeric(length(names))
-      #   for(j in 1:length(stat_vec)){
-      #     stat_vec[j] <- wilcox.test(x = data[to_sample[,i],j],
-      #                                y = data[!(rownames(data) %in% to_sample[,i]),j])$statistic
-      #   }
-      #   return(stat_vec)
-      # })
-
-      # New approach to calculate null test statistics.
-      stat_df_list <- parallel::mclapply(X = 1:n_rep, mc.cores = n_cores, FUN = function(i){
-        stat_vec <- matrixTests::col_wilcoxon_twosample(x = data[to_sample[,i],],
-                                                        y = data[!(rownames(data) %in% to_sample[,i]),])$statistic
-        return(stat_vec)
+    if(is.null(null_dist)){
+      to_sample <- replicate(n_rep, {
+        sample(x = rownames(data), size = length(subset))
       })
 
-    } else if(stat_test[1] == "T"){
-      # Old approach to calculate null test statistics.
-      # stat_df_list <- parallel::mclapply(X = 1:n_rep, mc.cores = n_cores, FUN = function(i){
-      #   stat_vec <- numeric(length(names))
-      #   for(j in 1:length(stat_vec)){
-      #     stat_vec[j] <- t.test(x = data[(to_sample[,i]),j],
-      #                           y = data[!(rownames(data) %in% to_sample[,i]),j])$statistic
-      #   }
-      #   return(stat_vec)
-      # })
+      if(stat_test[1] == "W"){
+        # Old approach to calculate null test statistics.
+        # stat_df_list <- parallel::mclapply(X = 1:n_rep, mc.cores = n_cores, FUN = function(i){
+        #   stat_vec <- numeric(length(names))
+        #   for(j in 1:length(stat_vec)){
+        #     stat_vec[j] <- wilcox.test(x = data[to_sample[,i],j],
+        #                                y = data[!(rownames(data) %in% to_sample[,i]),j])$statistic
+        #   }
+        #   return(stat_vec)
+        # })
 
-      # New approach to calculate null test statistics.
-      stat_df_list <- parallel::mclapply(X = 1:n_rep, mc.cores = n_cores, FUN = function(i){
-        stat_vec <- matrixTests::col_t_welch(x = data[to_sample[,i],],
-                                             y = data[!(rownames(data) %in% to_sample[,i]),])$statistic
-        return(stat_vec)
-      })
+        # New approach to calculate null test statistics.
+        stat_df_list <- parallel::mclapply(X = 1:n_rep, mc.cores = n_cores, FUN = function(i){
+          stat_vec <- matrixTests::col_wilcoxon_twosample(x = data[to_sample[,i],],
+                                                          y = data[!(rownames(data) %in% to_sample[,i]),])$statistic
+          return(stat_vec)
+        })
 
-    } else if(stat_test[1] == "KS"){
-      stat_df_list <- parallel::mclapply(X = 1:n_rep, mc.cores = n_cores, FUN = function(i){
-        stat_vec <- numeric(length(names))
-        for(j in 1:length(stat_vec)){
-          stat_vec[j] <- ks.test(x = data[(to_sample[,i]),j],
-                                 y = data[!(rownames(data) %in% to_sample[,i]),j])$statistic
-        }
-        return(stat_vec)
-      })
+      } else if(stat_test[1] == "T"){
+        # Old approach to calculate null test statistics.
+        # stat_df_list <- parallel::mclapply(X = 1:n_rep, mc.cores = n_cores, FUN = function(i){
+        #   stat_vec <- numeric(length(names))
+        #   for(j in 1:length(stat_vec)){
+        #     stat_vec[j] <- t.test(x = data[(to_sample[,i]),j],
+        #                           y = data[!(rownames(data) %in% to_sample[,i]),j])$statistic
+        #   }
+        #   return(stat_vec)
+        # })
 
-    }
+        # New approach to calculate null test statistics.
+        stat_df_list <- parallel::mclapply(X = 1:n_rep, mc.cores = n_cores, FUN = function(i){
+          stat_vec <- matrixTests::col_t_welch(x = data[to_sample[,i],],
+                                               y = data[!(rownames(data) %in% to_sample[,i]),])$statistic
+          return(stat_vec)
+        })
 
-    if(n_rep > 1) {
-      stat_df <- Reduce(rbind, stat_df_list)
-      colnames(stat_df) <- names
-      stat_df <- tibble::tibble(as.data.frame(stat_df))
+      } else if(stat_test[1] == "KS"){
+        stat_df_list <- parallel::mclapply(X = 1:n_rep, mc.cores = n_cores, FUN = function(i){
+          stat_vec <- numeric(length(names))
+          for(j in 1:length(stat_vec)){
+            stat_vec[j] <- ks.test(x = data[(to_sample[,i]),j],
+                                   y = data[!(rownames(data) %in% to_sample[,i]),j])$statistic
+          }
+          return(stat_vec)
+        })
+
+      }
+
+      if(n_rep > 1) {
+        stat_df <- Reduce(rbind, stat_df_list)
+        colnames(stat_df) <- names
+        stat_df <- tibble::tibble(as.data.frame(stat_df))
+      } else {
+        stat_df <- t(Reduce(rbind, stat_df_list))
+        colnames(stat_df) <- names
+        stat_df <- tibble::tibble(as.data.frame(stat_df))
+      }
     } else {
-      stat_df <- t(Reduce(rbind, stat_df_list))
-      colnames(stat_df) <- names
-      stat_df <- tibble::tibble(as.data.frame(stat_df))
+      stat_df <- null_dist
     }
+
 
   } else if(emp_p_val & n_background != 0) {
     # Use only a smaller selection of the background genes instead of all of them.
@@ -644,7 +650,8 @@ cellex_analysis <- function(input_set, # input gene set or protein set.
                             num_background_genes = 0,
                             statistic_plot = FALSE,
                             save_output = TRUE,
-                            download_biomart = TRUE
+                            download_biomart = TRUE,
+                            null_dist = NULL
                             ) {
 
   set.seed(42)

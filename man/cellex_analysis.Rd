@@ -20,7 +20,8 @@ cellex_analysis(
   num_background_genes = 0,
   statistic_plot = FALSE,
   save_output = TRUE,
-  download_biomart = TRUE
+  download_biomart = TRUE,
+  null_dist = NULL
 )
 }
 \arguments{
