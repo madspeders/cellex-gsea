@@ -249,8 +249,14 @@ statistical_test <- function(data,
   data <- tibble::column_to_rownames(.data = data, var = "gene")
   names <- colnames(data)
 
+  # Create folder to store null distributions in.
+  dir.create(paste0(getwd(), "/null_dists"), showWarnings = FALSE)
+
   if(emp_p_val & n_background == 0){
-    if(is.null(get_null_dist)){
+
+    if(paste0(getwd(), "/null_dist_", stat_test[1], "_", length(subset), ".rds") %in% dir("null_dists")){
+      stat_df <- readRDS(paste0(getwd(), "/null_dists/", paste0("null_dist_", stat_test[1], "_", length(subset), ".rds")))
+    } else if(is.null(get_null_dist)){
       to_sample <- replicate(n_rep, {
         sample(x = rownames(data), size = length(subset))
       })
@@ -314,7 +320,7 @@ statistical_test <- function(data,
       }
 
       if(save_null_dist){
-        saveRDS(stat_df, paste0("null_dist_", stat_test, "_", length(subset), ".rds"))
+        saveRDS(stat_df, paste0(getwd(), "/null_dists/null_dist_", stat_test[1], "_", length(subset), ".rds"))
       }
 
     } else {
