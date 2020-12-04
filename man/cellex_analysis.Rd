@@ -21,7 +21,8 @@ cellex_analysis(
   statistic_plot = FALSE,
   save_output = TRUE,
   download_biomart = TRUE,
-  null_dist = NULL
+  null_dist = NULL,
+  save_dist = FALSE
 )
 }
 \arguments{

@@ -241,7 +241,8 @@ statistical_test <- function(data,
                              n_rep = 1000,
                              n_cores = 1,
                              n_background = 0,
-                             null_dist = NULL){
+                             get_null_dist = NULL,
+                             save_null_dist = FALSE){
 
   # Set seed.
   set.seed(42)
@@ -311,6 +312,11 @@ statistical_test <- function(data,
         colnames(stat_df) <- names
         stat_df <- tibble::tibble(as.data.frame(stat_df))
       }
+
+      if(save_null_dist){
+        saveRDS(stat_df, paste0("null_dist_", stat_test, "_", length(subset), ".rds"))
+      }
+
     } else {
       stat_df <- null_dist
     }
@@ -651,7 +657,8 @@ cellex_analysis <- function(input_set, # input gene set or protein set.
                             statistic_plot = FALSE,
                             save_output = TRUE,
                             download_biomart = TRUE,
-                            null_dist = NULL
+                            null_dist = NULL,
+                            save_dist = FALSE
                             ) {
 
   set.seed(42)
@@ -726,7 +733,9 @@ cellex_analysis <- function(input_set, # input gene set or protein set.
                              plot = statistic_plot,
                              n_rep = reps,
                              n_cores = num_cores,
-                             n_background = num_background_genes)
+                             n_background = num_background_genes,
+                             get_null_dist = null_dist,
+                             save_null_dist = save_dist)
   message("Done!")
 
   if(is.null(output)){
