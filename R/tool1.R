@@ -254,7 +254,7 @@ statistical_test <- function(data,
 
   if(emp_p_val & n_background == 0){
 
-    if(paste0(getwd(), "/null_dist_", stat_test[1], "_", length(subset), ".rds") %in% dir("null_dists")){
+    if(paste0("null_dist_", stat_test[1], "_", length(subset), ".rds") %in% dir(paste0(getwd(), "/null_dists"))){
       stat_df <- readRDS(paste0(getwd(), "/null_dists/", paste0("null_dist_", stat_test[1], "_", length(subset), ".rds")))
     } else if(is.null(get_null_dist)){
       to_sample <- replicate(n_rep, {
