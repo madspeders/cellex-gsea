@@ -250,7 +250,7 @@ statistical_test <- function(data,
   names <- colnames(data)
 
   if(emp_p_val & n_background == 0){
-    if(is.null(null_dist)){
+    if(is.null(get_null_dist)){
       to_sample <- replicate(n_rep, {
         sample(x = rownames(data), size = length(subset))
       })
@@ -318,7 +318,7 @@ statistical_test <- function(data,
       }
 
     } else {
-      stat_df <- null_dist
+      stat_df <- get_null_dist
     }
 
 
