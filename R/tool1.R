@@ -642,7 +642,7 @@ plot_box <- function(output, subset, cellex_data, n_tissues = 10, param = "ESmu"
 cellex_analysis <- function(input_set, # input gene set or protein set.
                             input_type = c("ensembl", "uniprot", "gene"),
                             cellex_data = c(1, 2, 3),
-                            statistic = c("ES", "W", "KS", "T"),
+                            test = c("ES", "W", "KS", "T"),
                             first_order = FALSE,
                             p_val_adjust = FALSE,
                             emp_val = FALSE,
