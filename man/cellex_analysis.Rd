@@ -10,7 +10,7 @@ cellex_analysis(
   cellex_data = c(1, 2, 3),
   p_value = TRUE,
   p_value_adjust = TRUE,
-  emp_p_value = FALSE,
+  emp_value = FALSE,
   es_value = FALSE,
   first_order = FALSE,
   all_genes_as_background = FALSE,
@@ -36,7 +36,7 @@ cellex_analysis(
 
 \item{p_value_adjust}{If TRUE, adjusts the calculated p-values for multiple testing, using the FDR approach. Defaults to TRUE.}
 
-\item{emp_p_value}{If TRUE, calculates empirical p-values by randomly sampling a number of genes from the CELLEX dataset equivalent to the number of genes in the input_set, which is repeated a number of times (see parameter "reps") to obtain a null distribution. The null distribution is then compared to the test statistic for the genes in the input_set. Related parameters: "reps", "num_cores", "num_background_genes", "statistic_plot".}
+\item{emp_value}{If TRUE, calculates empirical p-values by randomly sampling a number of genes from the CELLEX dataset equivalent to the number of genes in the input_set, which is repeated a number of times (see parameter "reps") to obtain a null distribution. The null distribution is then compared to the test statistic for the genes in the input_set. Related parameters: "reps", "num_cores", "num_background_genes", "statistic_plot".}
 
 \item{es_value}{If TRUE, calculates enrichment scores for the input_set for each cell type / tissue type in the CELLEX. Uses ssGSEA approach implemented in the R package GSVA.}
 
@@ -46,11 +46,11 @@ cellex_analysis(
 
 \item{statistic}{Which test statistic to use. One of "W" (Wilcoxon test), "KS" (Kolmogorov–Smirnov test), or "T" (Student's t-test). Defaults to "W".}
 
-\item{reps}{Default is 1000. The number of random samplings to perform when computing the null distribution that is used to calculate the empirical p-value (see parameter "emp_p_value").}
+\item{reps}{Default is 1000. The number of random samplings to perform when computing the null distribution that is used to calculate the empirical p-value (see parameter "emp_value").}
 
-\item{num_cores}{Default is 1. The number of cores/threads to use when computing the null distribution for the empirical p-value (see parameter "emp_p_value").}
+\item{num_cores}{Default is 1. The number of cores/threads to use when computing the null distribution for the empirical p-value (see parameter "emp_value").}
 
-\item{num_background_genes}{Default is 0 (which means to use all background genes). The number of background genes to use when computing the null distribution for the empirical p-value (see parameter "emp_p_value").}
+\item{num_background_genes}{Default is 0 (which means to use all background genes). The number of background genes to use when computing the null distribution for the empirical p-value (see parameter "emp_value").}
 
 \item{statistic_plot}{Default is FALSE. Whether to plot (TRUE) or not plot (FALSE) the null distribution and the analytical test statistic for the most significant cell type.}
 
