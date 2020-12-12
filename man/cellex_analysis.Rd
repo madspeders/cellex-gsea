@@ -8,21 +8,19 @@ cellex_analysis(
   input_set,
   input_type = c("ensembl", "uniprot", "gene"),
   cellex_data = c(1, 2, 3),
-  p_value = TRUE,
-  p_value_adjust = TRUE,
-  emp_value = FALSE,
-  es_value = FALSE,
+  test = c("ES", "W", "KS", "T"),
   first_order = FALSE,
+  p_val_adjust = FALSE,
+  emp_val = FALSE,
   all_genes_as_background = FALSE,
-  statistic = c("W", "KS", "T"),
-  reps = 1000,
-  num_cores = 1,
-  num_background_genes = 0,
+  n_rep = 1000,
+  n_cores = 1,
+  n_background = 0,
   statistic_plot = FALSE,
   save_output = TRUE,
   download_biomart = TRUE,
-  null_dist = NULL,
-  save_dist = FALSE
+  get_null_dist = NULL,
+  save_null_dist = FALSE
 )
 }
 \arguments{
@@ -32,6 +30,16 @@ cellex_analysis(
 
 \item{cellex_data}{The CELLEX dataset to use in the package - must be in .csv format, and can also be gzip compressed as well. The path to a user-provided CELLEX dataset can be put here. Otherwise, three CELLEX datasets are included in the package, which can also be used. Set "cellex_data = 1" (default) for tabula_muris cellex dataset, set "cellex_data = 2" for gtex_v8 cellex dataset, or set "cellex_data = 3 for human cell landscape (HCL) cellex dataset.}
 
+\item{first_order}{If TRUE, obtain the first order network for the input genes / proteins, and use for the analysis. Defaults to FALSE.}
+
+\item{all_genes_as_background}{If TRUE, use all genes in the CELLEX dataset as background for analysis. If FALSE, use all genes in the CELLEX dataset which are not in the input_set, as background for analysis.}
+
+\item{statistic_plot}{Default is FALSE. Whether to plot (TRUE) or not plot (FALSE) the null distribution and the analytical test statistic for the most significant cell type.}
+
+\item{save_output}{Default is TRUE. Whether to save (TRUE) or not save (FALSE) the output of the tool. If TRUE, the tool saves the output dataframe as a .csv file.}
+
+\item{statistic}{Which test statistic to use. One of "W" (Wilcoxon test), "KS" (Kolmogorov–Smirnov test), or "T" (Student's t-test). Defaults to "W".}
+
 \item{p_value}{If TRUE, calculates and outputs the p-value (for the selected test statistic) for the expression specificity analysis. Defaults to TRUE.}
 
 \item{p_value_adjust}{If TRUE, adjusts the calculated p-values for multiple testing, using the FDR approach. Defaults to TRUE.}
@@ -40,21 +48,11 @@ cellex_analysis(
 
 \item{es_value}{If TRUE, calculates enrichment scores for the input_set for each cell type / tissue type in the CELLEX. Uses ssGSEA approach implemented in the R package GSVA.}
 
-\item{first_order}{If TRUE, obtain the first order network for the input genes / proteins, and use for the analysis. Defaults to FALSE.}
-
-\item{all_genes_as_background}{If TRUE, use all genes in the CELLEX dataset as background for analysis. If FALSE, use all genes in the CELLEX dataset which are not in the input_set, as background for analysis.}
-
-\item{statistic}{Which test statistic to use. One of "W" (Wilcoxon test), "KS" (Kolmogorov–Smirnov test), or "T" (Student's t-test). Defaults to "W".}
-
 \item{reps}{Default is 1000. The number of random samplings to perform when computing the null distribution that is used to calculate the empirical p-value (see parameter "emp_value").}
 
 \item{num_cores}{Default is 1. The number of cores/threads to use when computing the null distribution for the empirical p-value (see parameter "emp_value").}
 
 \item{num_background_genes}{Default is 0 (which means to use all background genes). The number of background genes to use when computing the null distribution for the empirical p-value (see parameter "emp_value").}
-
-\item{statistic_plot}{Default is FALSE. Whether to plot (TRUE) or not plot (FALSE) the null distribution and the analytical test statistic for the most significant cell type.}
-
-\item{save_output}{Default is TRUE. Whether to save (TRUE) or not save (FALSE) the output of the tool. If TRUE, the tool saves the output dataframe as a .csv file.}
 }
 \description{
 This function takes as input a gene set (in ENSEMBL, UNIPROT, or HGNC format) and performs

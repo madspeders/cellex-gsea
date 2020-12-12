@@ -653,8 +653,8 @@ cellex_analysis <- function(input_set, # input gene set or protein set.
                             statistic_plot = FALSE,
                             save_output = TRUE,
                             download_biomart = TRUE,
-                            null_dist = NULL,
-                            save_dist = FALSE
+                            get_null_dist = NULL,
+                            save_null_dist = FALSE
                             ) {
 
   set.seed(42)
