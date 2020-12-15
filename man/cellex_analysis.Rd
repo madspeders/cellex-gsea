@@ -8,15 +8,17 @@ cellex_analysis(
   input_set,
   input_type = c("ensembl", "uniprot", "gene"),
   cellex_data = c(1, 2, 3),
-  test = c("ES", "W", "KS", "T"),
-  first_order = FALSE,
+  emp_p_val = FALSE,
   p_val_adjust = FALSE,
-  emp_val = FALSE,
+  es_val = TRUE,
+  z_val_norm = FALSE,
+  first_order = FALSE,
   all_genes_as_background = FALSE,
-  n_rep = 1000,
+  statistic = c("W", "KS", "T"),
+  n_reps = 1000,
   n_cores = 1,
   n_background = 0,
-  statistic_plot = FALSE,
+  plot = FALSE,
   save_output = TRUE,
   download_biomart = TRUE,
   get_null_dist = NULL,
@@ -34,25 +36,25 @@ cellex_analysis(
 
 \item{all_genes_as_background}{If TRUE, use all genes in the CELLEX dataset as background for analysis. If FALSE, use all genes in the CELLEX dataset which are not in the input_set, as background for analysis.}
 
-\item{statistic_plot}{Default is FALSE. Whether to plot (TRUE) or not plot (FALSE) the null distribution and the analytical test statistic for the most significant cell type.}
+\item{statistic}{Which test statistic to use. One of "W" (Wilcoxon test), "KS" (Kolmogorov–Smirnov test), or "T" (Student's t-test). Defaults to "W".}
 
 \item{save_output}{Default is TRUE. Whether to save (TRUE) or not save (FALSE) the output of the tool. If TRUE, the tool saves the output dataframe as a .csv file.}
-
-\item{statistic}{Which test statistic to use. One of "W" (Wilcoxon test), "KS" (Kolmogorov–Smirnov test), or "T" (Student's t-test). Defaults to "W".}
 
 \item{p_value}{If TRUE, calculates and outputs the p-value (for the selected test statistic) for the expression specificity analysis. Defaults to TRUE.}
 
 \item{p_value_adjust}{If TRUE, adjusts the calculated p-values for multiple testing, using the FDR approach. Defaults to TRUE.}
 
-\item{emp_value}{If TRUE, calculates empirical p-values by randomly sampling a number of genes from the CELLEX dataset equivalent to the number of genes in the input_set, which is repeated a number of times (see parameter "reps") to obtain a null distribution. The null distribution is then compared to the test statistic for the genes in the input_set. Related parameters: "reps", "num_cores", "num_background_genes", "statistic_plot".}
+\item{emp_p_value}{If TRUE, calculates empirical p-values by randomly sampling a number of genes from the CELLEX dataset equivalent to the number of genes in the input_set, which is repeated a number of times (see parameter "reps") to obtain a null distribution. The null distribution is then compared to the test statistic for the genes in the input_set. Related parameters: "reps", "num_cores", "num_background_genes", "statistic_plot".}
 
 \item{es_value}{If TRUE, calculates enrichment scores for the input_set for each cell type / tissue type in the CELLEX. Uses ssGSEA approach implemented in the R package GSVA.}
 
-\item{reps}{Default is 1000. The number of random samplings to perform when computing the null distribution that is used to calculate the empirical p-value (see parameter "emp_value").}
+\item{reps}{Default is 1000. The number of random samplings to perform when computing the null distribution that is used to calculate the empirical p-value (see parameter "emp_p_value").}
 
-\item{num_cores}{Default is 1. The number of cores/threads to use when computing the null distribution for the empirical p-value (see parameter "emp_value").}
+\item{num_cores}{Default is 1. The number of cores/threads to use when computing the null distribution for the empirical p-value (see parameter "emp_p_value").}
 
-\item{num_background_genes}{Default is 0 (which means to use all background genes). The number of background genes to use when computing the null distribution for the empirical p-value (see parameter "emp_value").}
+\item{num_background_genes}{Default is 0 (which means to use all background genes). The number of background genes to use when computing the null distribution for the empirical p-value (see parameter "emp_p_value").}
+
+\item{statistic_plot}{Default is FALSE. Whether to plot (TRUE) or not plot (FALSE) the null distribution and the analytical test statistic for the most significant cell type.}
 }
 \description{
 This function takes as input a gene set (in ENSEMBL, UNIPROT, or HGNC format) and performs
