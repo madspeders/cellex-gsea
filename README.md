@@ -2,9 +2,9 @@
 R package to calculate cell specific expression of genes, using an input gene set and a CELLEX dataset.  
 
 ## Installation instructions
-Use the function `install_github` from the package `devtools` to install this R package. Since this is a private repo, I have provided an authentication token to be used with the command - just copy-paste the following:
+Use the function `install_github` from the package `devtools` to install this R package:
 ```R
-devtools::install_github("Mporse/cellex.analysis", auth_token = "ee6b08ac58e5d426dc6c95a96804f3d5e2f98b11")
+devtools::install_github("Mporse/cellex.analysis")
 ```
 
 ## Short tutorial
