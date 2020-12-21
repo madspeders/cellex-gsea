@@ -8,9 +8,10 @@ cellex_analysis(
   input_set,
   input_type = c("ensembl", "uniprot", "gene"),
   cellex_data = c(1, 2, 3),
-  emp_p_val = FALSE,
+  emp_p_val = TRUE,
   p_val_adjust = FALSE,
   es_val = TRUE,
+  es_val_norm = FALSE,
   z_val_norm = FALSE,
   first_order = FALSE,
   all_genes_as_background = FALSE,
@@ -18,11 +19,14 @@ cellex_analysis(
   n_reps = 1000,
   n_cores = 1,
   n_background = 0,
-  plot = FALSE,
+  generate_plots = TRUE,
+  save_plots = TRUE,
   save_output = TRUE,
   download_biomart = TRUE,
-  get_null_dist = NULL,
-  save_null_dist = FALSE
+  get_null_dist = TRUE,
+  filter_output = FALSE,
+  p_threshold = 0.005,
+  es_threshold = 6500
 )
 }
 \arguments{
