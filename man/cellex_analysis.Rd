@@ -15,7 +15,7 @@ cellex_analysis(
   z_val_norm = FALSE,
   first_order = FALSE,
   all_genes_as_background = FALSE,
-  statistic = c("W", "KS", "T"),
+  statistic = c("W", "KS", "T", "ES"),
   n_reps = 1000,
   n_cores = 1,
   n_background = 0,
@@ -26,7 +26,9 @@ cellex_analysis(
   get_null_dist = TRUE,
   filter_output = FALSE,
   p_threshold = 0.005,
-  es_threshold = 6500
+  es_threshold = 6500,
+  del_stat_vals = TRUE,
+  output_stat_df = FALSE
 )
 }
 \arguments{

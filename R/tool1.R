@@ -228,7 +228,7 @@ ssgsea <- function(data, geneSet, alpha=0.25, n_cores = 1, es_val_norm = FALSE){
 statistical_test <- function(data,
                              subset,
                              background,
-                             stat_test = c("W", "KS", "T"),
+                             stat_test = c("W", "KS", "T", "ES"),
                              emp_p_val = TRUE,
                              z_val_norm = FALSE,
                              p_val_adjust = FALSE,
@@ -286,16 +286,6 @@ statistical_test <- function(data,
         }
 
       if(stat_test[1] == "W"){
-        # Old approach to calculate null test statistics.
-        # stat_df_list <- parallel::mclapply(X = 1:n_reps, mc.cores = n_cores, FUN = function(i){
-        #   stat_vec <- numeric(length(names))
-        #   for(j in 1:length(stat_vec)){
-        #     stat_vec[j] <- wilcox.test(x = data[to_sample[,i],j],
-        #                                y = data[!(rownames(data) %in% to_sample[,i]),j])$statistic
-        #   }
-        #   return(stat_vec)
-        # })
-
         # New approach to calculate null test statistics.
         stat_df_list <- parallel::mclapply(X = 1:n_reps, mc.cores = n_cores, FUN = function(i){
           stat_vec <- matrixTests::col_wilcoxon_twosample(x = data[to_sample[,i],],
@@ -304,16 +294,6 @@ statistical_test <- function(data,
         })
 
       } else if(stat_test[1] == "T"){
-        # Old approach to calculate null test statistics.
-        # stat_df_list <- parallel::mclapply(X = 1:n_reps, mc.cores = n_cores, FUN = function(i){
-        #   stat_vec <- numeric(length(names))
-        #   for(j in 1:length(stat_vec)){
-        #     stat_vec[j] <- t.test(x = data[(to_sample[,i]),j],
-        #                           y = data[!(rownames(data) %in% to_sample[,i]),j])$statistic
-        #   }
-        #   return(stat_vec)
-        # })
-
         # New approach to calculate null test statistics.
         stat_df_list <- parallel::mclapply(X = 1:n_reps, mc.cores = n_cores, FUN = function(i){
           stat_vec <- matrixTests::col_t_welch(x = data[to_sample[,i],],
@@ -329,6 +309,12 @@ statistical_test <- function(data,
                                    y = data[!(rownames(data) %in% to_sample[,i]),j])$statistic
           }
           return(stat_vec)
+        })
+
+      } else if(test[1] == "ES") {
+        stat_df_list <- parallel::mclapply(X = 1:n_rep, mc.cores = n_cores, FUN = function(i){
+          es_vec <- ssgsea(data, geneSet = to_sample[,i], n_cores = n_cores, es_val_norm = FALSE)$es.value
+          return(es_vec)
         })
 
       }
@@ -365,16 +351,6 @@ statistical_test <- function(data,
     })
 
     if(stat_test[1] == "W"){
-      # Old approach to calculate null test statistics.
-      # stat_df_list <- parallel::mclapply(X = 1:n_reps, mc.cores = n_cores, FUN = function(i){
-      #   stat_vec <- numeric(length(names))
-      #   for(j in 1:length(stat_vec)){
-      #     stat_vec[j] <- wilcox.test(x = data[to_sample[,i],j],
-      #                                y = data[to_sample_back[,i],j])$statistic
-      #   }
-      #   return(stat_vec)
-      # })
-
       # New approach to calculate null test statistics.
       stat_df_list <- parallel::mclapply(X = 1:n_reps, mc.cores = n_cores, FUN = function(i){
         stat_vec <- matrixTests::col_wilcoxon_twosample(x = data[to_sample[,i],],
@@ -383,16 +359,6 @@ statistical_test <- function(data,
       })
 
     } else if(stat_test[1] == "T"){
-      # Old approach to calculate null test statistics.
-      # stat_df_list <- parallel::mclapply(X = 1:n_reps, mc.cores = n_cores, FUN = function(i){
-      #   stat_vec <- numeric(length(names))
-      #   for(j in 1:length(stat_vec)){
-      #     stat_vec[j] <- t.test(x = data[to_sample[,i],j],
-      #                           y = data[to_sample_back[,i],j])$statistic
-      #   }
-      #   return(stat_vec)
-      # })
-
       # New approach to calculate null test statistics.
       stat_df_list <- parallel::mclapply(X = 1:n_reps, mc.cores = n_cores, FUN = function(i){
         stat_vec <- matrixTests::col_t_welch(x = data[to_sample[,i],],
@@ -408,6 +374,12 @@ statistical_test <- function(data,
                                  y = data[to_sample_back[,i],j])$statistic
         }
         return(stat_vec)
+      })
+
+    } else if(test[1] == "ES") {
+      stat_df_list <- parallel::mclapply(X = 1:n_rep, mc.cores = n_cores, FUN = function(i){
+        es_vec <- ssgsea(data[to_sample_back[,i],], geneSet = to_sample[,i], n_cores = n_cores, es_val_norm = FALSE)$es.value
+        return(es_vec)
       })
 
     }
@@ -427,7 +399,9 @@ statistical_test <- function(data,
 
 
   # Generate analytical test statistics.
-  if(stat_test[1] == "W"){
+  if(stat_test[1] == "ES") {
+    output <- tibble::as_tibble(ssgsea(data, geneSet = subset, n_cores = n_cores, es_val_norm = FALSE))
+  } else if(stat_test[1] == "W"){
     output <- matrixTests::col_wilcoxon_twosample(x = data[subset,],
                                                   y = data[background,])
     output <- output %>%
@@ -453,25 +427,39 @@ statistical_test <- function(data,
   }
 
   # Which values to extract.
-  if(emp_p_val){
+  if(emp_p_val & stat_test[1] != "ES"){
     output <- output %>% dplyr::select(tissue.cell, statistic)
-  } else {
+  } else if(stat_test[1] != "ES") {
     output <- output %>% dplyr::select(tissue.cell, p.value)
   }
 
   # Calculate empirical p-values and z-values from the previously computed statistical values.
   if(emp_p_val){
-    p_z_val_out <- parallel::mclapply(colnames(stat_df), mc.cores = n_cores, FUN = function(col){
-      stat_an <- output %>% dplyr::filter(tissue.cell == col) %>% dplyr::select(statistic)
-      stat_an <- stat_an[[1]]
-      stat_null <- stat_df[,col]
-      stat_null <- stat_null[[1]]
-      #p_value <- (sum(stat_null > stat_an) + 1) / (n_reps) # one-sided
-      #p_value <- ( sum(stat_null < -abs(stat_an)) + sum(stat_null > abs(stat_an)) ) / (n_reps) # two-sided
-      p_value <- ( sum(stat_null < -abs(stat_an)) + sum(stat_null > abs(stat_an)) +1) / (n_reps+1) # two-sided
-      z_value <- (stat_an - mean(stat_null)) / sd(stat_null)
-      return(c(p_value, unname(z_value)))
-    })
+    if(stat_test[1] == "ES") {
+      p_z_val_out <- parallel::mclapply(colnames(stat_df), mc.cores = n_cores, FUN = function(col){
+        stat_an <- output %>% dplyr::filter(tissue.cell == col) %>% dplyr::select(es.value)
+        stat_an <- stat_an[[1]]
+        stat_null <- stat_df[,col]
+        stat_null <- stat_null[[1]]
+        #p_value <- (sum(stat_null > stat_an) + 1) / (n_rep) # one-sided
+        #p_value <- ( sum(stat_null < -abs(stat_an)) + sum(stat_null > abs(stat_an)) ) / (n_rep) # two-sided
+        p_value <- ( sum(stat_null < -abs(stat_an)) + sum(stat_null > abs(stat_an)) +1) / (n_reps+1) # two-sided
+        z_value <- (stat_an - mean(stat_null)) / sd(stat_null)
+        return(c(p_value, unname(z_value)))
+      })
+    } else {
+      p_z_val_out <- parallel::mclapply(colnames(stat_df), mc.cores = n_cores, FUN = function(col){
+        stat_an <- output %>% dplyr::filter(tissue.cell == col) %>% dplyr::select(statistic)
+        stat_an <- stat_an[[1]]
+        stat_null <- stat_df[,col]
+        stat_null <- stat_null[[1]]
+        #p_value <- (sum(stat_null > stat_an) + 1) / (n_reps) # one-sided
+        #p_value <- ( sum(stat_null < -abs(stat_an)) + sum(stat_null > abs(stat_an)) ) / (n_reps) # two-sided
+        p_value <- ( sum(stat_null < -abs(stat_an)) + sum(stat_null > abs(stat_an)) +1) / (n_reps+1) # two-sided
+        z_value <- (stat_an - mean(stat_null)) / sd(stat_null)
+        return(c(p_value, unname(z_value)))
+      })
+    }
 
     p_z_val_out <- tibble::tibble(as.data.frame(Reduce(rbind, p_z_val_out)))
     names(p_z_val_out) <- c("p.value", "Z.value")
@@ -502,15 +490,19 @@ statistical_test <- function(data,
   }
 
   # Calculate ES values (from ssGSEA method) and append to output.
-  if(es_val) {
+  if(es_val & "es.value" %in% colnames(output)){
+    output <- output %>% dplyr::relocate(es.value, .after = last_col())
+  } else if(es_val) {
     es <- ssgsea(data, geneSet = subset, n_cores = n_cores, es_val_norm = es_val_norm)
     output <- output %>% tibble::add_column(es.value = es$es.value)
   }
 
   # Sort the output values.
-  if(emp_p_val) {
-    output <- output %>% dplyr::arrange(desc(z.value), desc(statistic))
-  } else if(es_val & !emp_p_val) {
+  if(emp_p_val & es_val) {
+    output <- output %>% dplyr::arrange(desc(z.value), desc(es.value))
+  } else if(emp_p_val) {
+    output <- output %>% dplyr::arrange(desc(z.value))
+  } else if(es_val) {
     output <- output %>% dplyr::arrange(desc(es.value), p.value)
   } else {
     output <- output %>% dplyr::arrange(p.value)
@@ -567,7 +559,13 @@ plot_bar <- function(output,
 
 
 #' @export
-plot_box <- function(output, subset, cellex_data, n_tissues = 10, param = "ESmu", font_size = 8, save_plots = TRUE){ # background
+plot_box <- function(output,
+                     subset,
+                     cellex_data,
+                     n_tissues = 10,
+                     param = "ESmu",
+                     font_size = 8,
+                     save_plots = TRUE){ # background
   top_cells <- head(output, n_tissues)$tissue.cell
   subset_new <- cellex_data %>%
     dplyr::filter(gene %in% subset) %>%
@@ -597,6 +595,54 @@ plot_box <- function(output, subset, cellex_data, n_tissues = 10, param = "ESmu"
   if(save_plots) {
     dir.create("./plots", showWarnings = FALSE)
     ggplot2::ggsave("plots/output_boxplot.png")
+  }
+}
+
+#' @export
+plot_hist <- function(output,
+                      stat_df,
+                      statistic = c("W", "KS", "T", "ES"),
+                      save_plots = TRUE) { # "output" parameter needs to have a column with "statistic" values!
+  tissues <- output$tissue.cell[1:12]
+  if(statistic[1] != "ES") {
+    intercept <- output %>% dplyr::filter(tissue.cell %in% tissues) %>% dplyr::select(statistic)
+  } else {
+    intercept <- output %>% dplyr::filter(tissue.cell %in% tissues) %>% dplyr::select(es.value)
+  }
+  intercept <- unname(intercept[[1]])
+  intercepts <- c()
+  for(number in intercept) {
+    intercepts <- c(intercepts, rep(x = number, times = n_reps))
+  }
+  stat_df <- stat_df %>% dplyr::select(tissues)
+  stat_df <- reshape2::melt(stat_df, )
+  colnames(stat_df) <- c("tissue.cell", "statistic")
+  stat_df <- stat_df %>% tibble::add_column(intercept = intercepts)
+
+
+  ggplot2::ggplot(data = stat_df, ggplot2::aes(x = statistic)) +
+    ggplot2::geom_histogram() +
+    ggplot2::xlab(paste0(statistic[1], " statistic")) +
+    ggplot2::ggtitle(paste0("Histograms of statistic values")) +
+    ggplot2::theme_bw() +
+    ggplot2::theme(plot.title = ggplot2::element_text(size = 12, hjust = 0.5)) +
+    ggplot2::facet_wrap(~tissue.cell, scales = "free") + # maybe use 'scales = "fixed" ' instead?
+    ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[1]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
+    ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[2]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
+    ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[3]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
+    ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[4]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
+    ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[5]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
+    ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[6]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
+    ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[7]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
+    ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[8]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
+    ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[9]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
+    ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[10]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
+    ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[11]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
+    ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[12]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1)
+
+  if(save_plots) {
+    dir.create("./plots", showWarnings = FALSE)
+    ggplot2::ggsave("plots/stat_histogram.png", units = "cm", width = 40, height = 22.5)
   }
 }
 
@@ -657,7 +703,7 @@ cellex_analysis <- function(input_set, # input gene set or protein set.
                             z_val_norm = FALSE,
                             first_order = FALSE,
                             all_genes_as_background = FALSE,
-                            statistic = c("W", "KS", "T"),
+                            statistic = c("W", "KS", "T", "ES"),
                             n_reps = 1000,
                             n_cores = 1,
                             n_background = 0,
@@ -668,7 +714,9 @@ cellex_analysis <- function(input_set, # input gene set or protein set.
                             get_null_dist = TRUE,
                             filter_output = FALSE,
                             p_threshold = 0.005,
-                            es_threshold = 6500
+                            es_threshold = 6500,
+                            del_stat_vals = TRUE,
+                            output_stat_df = FALSE
                             ) {
 
   set.seed(42)
@@ -756,54 +804,18 @@ cellex_analysis <- function(input_set, # input gene set or protein set.
   } else {
 
     if(generate_plots & emp_p_val) {
+      # Histograms.
       message("\nGenerating histograms of statistics values...")
 
-      # Histograms.
-      tissues <- output$tissue.cell[1:12]
-      intercept <- output %>% dplyr::filter(tissue.cell %in% tissues) %>% dplyr::select(statistic)
-      intercept <- unname(intercept[[1]])
-      intercepts <- c()
-      for(number in intercept) {
-        intercepts <- c(intercepts, rep(x = number, times = n_reps))
-      }
-      stat_df <- stat_df %>% dplyr::select(tissues)
-      stat_df <- reshape2::melt(stat_df, )
-      colnames(stat_df) <- c("tissue.cell", "statistic")
-      stat_df <- stat_df %>% tibble::add_column(intercept = intercepts)
-
-
-      ggplot2::ggplot(data = stat_df, ggplot2::aes(x = statistic)) +
-        ggplot2::geom_histogram() +
-        ggplot2::xlab(paste0(statistic[1], " statistic")) +
-        ggplot2::ggtitle(paste0("Histograms of statistic values")) +
-        ggplot2::theme_bw() +
-        ggplot2::theme(plot.title = ggplot2::element_text(size = 12, hjust = 0.5)) +
-        ggplot2::facet_wrap(~tissue.cell, scales = "free") + # maybe use 'scales = "fixed" ' instead?
-        ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[1]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
-        ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[2]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
-        ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[3]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
-        ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[4]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
-        ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[5]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
-        ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[6]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
-        ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[7]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
-        ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[8]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
-        ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[9]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
-        ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[10]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
-        ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[11]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
-        ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[12]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1)
-
-      if(save_plots) {
-        dir.create("./plots", showWarnings = FALSE)
-        ggplot2::ggsave("plots/stat_histogram.png", units = "cm", width = 40, height = 22.5)
-      }
       message("Done!")
     }
 
 
     if(emp_p_val) {
-      # Remove the "statistic" column.
-      output <- output %>% dplyr::select(-statistic)
-      rm(stat_df)
+      if(statistic[1] != "ES" & del_stat_vals) {
+        # Remove the "statistic" column.
+        output <- output %>% dplyr::select(-statistic)
+      }
     }
 
 
@@ -824,20 +836,27 @@ cellex_analysis <- function(input_set, # input gene set or protein set.
     message("Done!")
 
     # Whether to save plots.
-    if(save_plots) {
-      message("\nSaving plots...")
+    if(generate_plots) {
+      message("\nGenerating plots...")
 
       for(value in c("es.value", "z.value", "p.value")) {
         if(value %in% colnames(output)){
-          plot_bar(output, value)
+          plot_bar(output, value, save_plots = save_plots)
         }
       }
-      plot_box(output, subset_genes, cellex_data)
+      plot_box(output, subset_genes, cellex_data, save_plots = save_plots)
 
       message("Done!\n")
     }
 
 
-    return(output)
+
+    if(output_stat_df) {
+      output_list <- list(output = output, stat_df = stat_df)
+      return(output_list)
+    } else {
+      output_list <- list(output = output, stat_df = NULL)
+      return(output_list)
+    }
   }
 }
