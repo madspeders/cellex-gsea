@@ -1,10 +1,10 @@
-#' @title gene set specificity
+#' @title CELLEX-GSEA
 #' @author Mads Porse Pedersen
 #' @usage Takes CELLEX data and an input gene set (in ensembl, uniprot, or hgnc format),
-#' then extracts the ensembl gene names and performs a user-specified test to determine
-#' gene specific expression for various cell types.
-#' @return Output dataframe with p-values, z-values, and/or enrichment scores (es-values)
-#' for the various cell types.
+#' then extracts the ensembl gene names and performs a user-specified statistical test
+#' to determine gene specific expression for various cell types.
+#' @return Outputs dataframe with either empirical p-values and z-values, p-values
+#' (non-empirical) or enrichment score (es) values for the various cell types.
 
 #' @importFrom magrittr %>%
 
@@ -34,11 +34,11 @@ get_alias <- function(input,
       }
     }
   } else {
-    ensembl <- readRDS(system.file("biomart_data", "biomart_2020.rds", package = "cellex.analysis"))
+    ensembl <- readRDS(system.file("biomart_data", "biomart_2020.rds", package = "cellex.gsea"))
   }
 
   if(!exists("ensembl")){
-    ensembl <- readRDS(system.file("biomart_data", "biomart_2020.rds", package = "cellex.analysis"))
+    ensembl <- readRDS(system.file("biomart_data", "biomart_2020.rds", package = "cellex.gsea"))
   }
 
   if(input_type[1] == "ensembl"){
@@ -47,9 +47,6 @@ get_alias <- function(input,
     alias_df <- alias_df %>%
       dplyr::arrange(desc(hgnc_symbol), desc(uniprotswissprot)) %>%
       dplyr::distinct(ensembl_gene_id, .keep_all = TRUE)
-    # alias_df <- alias_df %>%
-    #   dplyr::arrange(hgnc_symbol, ensembl_gene_id) %>%
-    #   dplyr::distinct(hgnc_symbol, .keep_all = TRUE)
     missing <- input[!(input %in% alias_df$ensembl_gene_id)]
     alias_df <- alias_df %>% dplyr::add_row(data.frame(ensembl_gene_id = missing,
                                                        hgnc_symbol = rep("", length(missing)),
@@ -60,9 +57,6 @@ get_alias <- function(input,
     alias_df <- alias_df %>%
       dplyr::arrange(hgnc_symbol, desc(uniprotswissprot)) %>%
       dplyr::distinct(ensembl_gene_id, .keep_all = TRUE)
-    # alias_df <- alias_df %>%
-    #   dplyr::arrange(hgnc_symbol, ensembl_gene_id) %>%
-    #   dplyr::distinct(hgnc_symbol, .keep_all = TRUE)
     missing <- input[!(input %in% alias_df$hgnc_symbol)]
     alias_df <- alias_df %>% dplyr::add_row(data.frame(ensembl_gene_id = rep("", length(missing)),
                                             hgnc_symbol = missing,
@@ -73,9 +67,6 @@ get_alias <- function(input,
     alias_df <- alias_df %>%
       dplyr::arrange(desc(hgnc_symbol), desc(uniprotswissprot)) %>%
       dplyr::distinct(ensembl_gene_id, .keep_all = TRUE)
-    # alias_df <- alias_df %>%
-    #   dplyr::arrange(hgnc_symbol, ensembl_gene_id) %>%
-    #   dplyr::distinct(hgnc_symbol, .keep_all = TRUE)
     missing <- input[!(input %in% alias_df$uniprotswissprot)]
     alias_df <- alias_df %>% dplyr::add_row(data.frame(ensembl_gene_id = rep("", length(missing)),
                                             hgnc_symbol = rep("", length(missing)),
@@ -139,11 +130,11 @@ first_order_network <- function(input,
       }
     }
   } else {
-    ensembl <- readRDS(system.file("biomart_data", "biomart_2020.rds", package = "cellex.analysis"))
+    ensembl <- readRDS(system.file("biomart_data", "biomart_2020.rds", package = "cellex.gsea"))
   }
 
   if(!exists("ensembl")){
-    ensembl <- readRDS(system.file("biomart_data", "biomart_2020.rds", package = "cellex.analysis"))
+    ensembl <- readRDS(system.file("biomart_data", "biomart_2020.rds", package = "cellex.gsea"))
   }
 
   alias_df <- biomaRt::getBM(attributes = c('ensembl_gene_id', "uniprotswissprot", 'hgnc_symbol'),
@@ -170,6 +161,7 @@ first_order_network <- function(input,
 
 
 fastRndWalk <- function(gSetIdx, geneRanking, j, Ra) {
+  # Function used for the ssgsea approach of calculating ES values.
   m <- length(geneRanking)
   k <- length(gSetIdx)
   idxs <- sort.int(fastmatch::fmatch(gSetIdx, geneRanking))
@@ -187,7 +179,7 @@ fastRndWalk <- function(gSetIdx, geneRanking, j, Ra) {
 
 
 ssgsea <- function(data, geneSet, alpha=0.25, n_cores = 1, es_val_norm = FALSE){
-  #data <- tibble::column_to_rownames(.data = data, var = "gene")
+  # Function for calculating the ES values, as used in the ssgsea approach of the GSVA package.
   p <- nrow(data)
   n <- ncol(data)
 
@@ -196,9 +188,7 @@ ssgsea <- function(data, geneSet, alpha=0.25, n_cores = 1, es_val_norm = FALSE){
 
   gSetIdx <- which(rownames(data) %in% geneSet)
 
-  es <- matrix(NA,
-               nrow=1,
-               ncol=ncol(data))
+  es <- matrix(NA, nrow=1, ncol=ncol(data))
 
   es <- parallel::mclapply(as.list(1:n), mc.cores = n_cores, FUN = function(j) {
     geneRanking <- sort.list(R[,j], decreasing=TRUE)
@@ -210,10 +200,9 @@ ssgsea <- function(data, geneSet, alpha=0.25, n_cores = 1, es_val_norm = FALSE){
   es <- do.call("cbind", es)
   es <- matrix(es, nrow=1)
 
-  # Normalization of values.
+  # Normalization of values (to values in the range 0 to 1).
   if(es_val_norm){
-    #es <- apply(es, 2, function(x, es) x / max(es), es) # approach 1.
-    es <- apply(es, 2, function(x, es) (x - min(es)) / (max(es) - min(es)), es) # approach 2.
+    es <- apply(es, 2, function(x, es) (x - min(es)) / (max(es) - min(es)), es)
     es <- matrix(es, nrow=1)
   }
 
@@ -229,18 +218,19 @@ statistical_test <- function(data,
                              subset,
                              background,
                              stat_test = c("W", "KS", "T", "ES"),
+                             alternative = c("two.sided", "less", "greater")[1],
                              emp_p_val = TRUE,
-                             z_val_norm = FALSE,
                              p_val_adjust = FALSE,
-                             es_val = TRUE,
-                             es_val_norm = FALSE,
                              n_reps = 1000,
                              n_cores = 1,
                              n_background = 0,
                              get_null_dist = TRUE){
+  # Function to perform statistical tests and calculate p-values.
 
   # Set seed.
   set.seed(42)
+
+  # Load data and gene set, and perform analysis.
   data <- tibble::column_to_rownames(.data = data, var = "gene")
   names <- colnames(data)
 
@@ -269,7 +259,7 @@ statistical_test <- function(data,
       }
 
       dir.create("./tmp", showWarnings = FALSE)
-      token <- readRDS(system.file("token", "token.rds", package = "cellex.analysis"))
+      token <- readRDS(system.file("token", "token.rds", package = "cellex.gsea"))
       rdrop2::drop_download(path = paste0("/null_dists/", stat_test[1], "/", number, ".rds"), local_path = paste0("./tmp/", number, ".rds"), overwrite = TRUE, dtoken = token)
       stat_df <- readRDS(paste0("./tmp/", number, ".rds"))
       file.remove(paste0("./tmp/", number, ".rds"))
@@ -289,7 +279,8 @@ statistical_test <- function(data,
         # New approach to calculate null test statistics.
         stat_df_list <- parallel::mclapply(X = 1:n_reps, mc.cores = n_cores, FUN = function(i){
           stat_vec <- matrixTests::col_wilcoxon_twosample(x = data[to_sample[,i],],
-                                                          y = data[!(rownames(data) %in% to_sample[,i]),])$statistic
+                                                          y = data[!(rownames(data) %in% to_sample[,i]),],
+                                                          alternative = alternative)$statistic
           return(stat_vec)
         })
 
@@ -297,7 +288,8 @@ statistical_test <- function(data,
         # New approach to calculate null test statistics.
         stat_df_list <- parallel::mclapply(X = 1:n_reps, mc.cores = n_cores, FUN = function(i){
           stat_vec <- matrixTests::col_t_welch(x = data[to_sample[,i],],
-                                               y = data[!(rownames(data) %in% to_sample[,i]),])$statistic
+                                               y = data[!(rownames(data) %in% to_sample[,i]),],
+                                               alternative = alternative)$statistic
           return(stat_vec)
         })
 
@@ -306,13 +298,14 @@ statistical_test <- function(data,
           stat_vec <- numeric(length(names))
           for(j in 1:length(stat_vec)){
             stat_vec[j] <- ks.test(x = data[(to_sample[,i]),j],
-                                   y = data[!(rownames(data) %in% to_sample[,i]),j])$statistic
+                                   y = data[!(rownames(data) %in% to_sample[,i]),j],
+                                   alternative = alternative)$statistic
           }
           return(stat_vec)
         })
 
-      } else if(test[1] == "ES") {
-        stat_df_list <- parallel::mclapply(X = 1:n_rep, mc.cores = n_cores, FUN = function(i){
+      } else if(stat_test[1] == "ES") {
+        stat_df_list <- parallel::mclapply(X = 1:n_reps, mc.cores = n_cores, FUN = function(i){
           es_vec <- ssgsea(data, geneSet = to_sample[,i], n_cores = n_cores, es_val_norm = FALSE)$es.value
           return(es_vec)
         })
@@ -376,9 +369,9 @@ statistical_test <- function(data,
         return(stat_vec)
       })
 
-    } else if(test[1] == "ES") {
-      stat_df_list <- parallel::mclapply(X = 1:n_rep, mc.cores = n_cores, FUN = function(i){
-        es_vec <- ssgsea(data[to_sample_back[,i],], geneSet = to_sample[,i], n_cores = n_cores, es_val_norm = FALSE)$es.value
+    } else if(stat_test[1] == "ES") {
+      stat_df_list <- parallel::mclapply(X = 1:n_reps, mc.cores = n_cores, FUN = function(i){
+        es_vec <- ssgsea(data[to_sample_back[,i],], geneSet = to_sample[,i], n_cores = 1, es_val_norm = FALSE)$es.value
         return(es_vec)
       })
 
@@ -399,31 +392,38 @@ statistical_test <- function(data,
 
 
   # Generate analytical test statistics.
-  if(stat_test[1] == "ES") {
-    output <- tibble::as_tibble(ssgsea(data, geneSet = subset, n_cores = n_cores, es_val_norm = FALSE))
-  } else if(stat_test[1] == "W"){
+  if(stat_test[1] == "W"){
     output <- matrixTests::col_wilcoxon_twosample(x = data[subset,],
-                                                  y = data[background,])
-    output <- output %>%
-      tibble::rownames_to_column(var = "tissue.cell") %>%
-      tibble::as_tibble() %>%
-      dplyr::rename(p.value = pvalue)
-  } else if(stat_test[1] == "KS") {
-    output <- matrixTests::col_t_welch(x = data[subset,],
-                                       y = data[background,])
+                                                  y = data[background,],
+                                                  alternative = alternative)
     output <- output %>%
       tibble::rownames_to_column(var = "tissue.cell") %>%
       tibble::as_tibble() %>%
       dplyr::rename(p.value = pvalue)
   } else if(stat_test[1] == "T") {
+    output <- matrixTests::col_t_welch(x = data[subset,],
+                                       y = data[background,],
+                                       alternative = alternative)
+    output <- output %>%
+      tibble::rownames_to_column(var = "tissue.cell") %>%
+      tibble::as_tibble() %>%
+      dplyr::rename(p.value = pvalue)
+  } else if(stat_test[1] == "KS") {
     output <- parallel::mclapply(names, mc.cores = n_cores, FUN = function(col){
       test <- ks.test(x = data[subset, col],
-                      y = data[background, col])
+                      y = data[background, col],
+                      alternative = alternative)
       df.test <- broom::tidy(test)
       df.test <- df.test %>% tibble::add_column(tissue.cell = col, .before = "statistic")
       return(df.test)
     })
     output <- tibble::tibble(Reduce(rbind, output))
+  } else if(stat_test[1] == "ES") {
+    if(emp_p_val) {
+      output <- tibble::as_tibble(ssgsea(data, geneSet = subset, n_cores = n_cores, es_val_norm = FALSE))
+    } else {
+      output <- tibble::as_tibble(ssgsea(data, geneSet = subset, n_cores = n_cores, es_val_norm = TRUE))
+    }
   }
 
   # Which values to extract.
@@ -431,44 +431,48 @@ statistical_test <- function(data,
     output <- output %>% dplyr::select(tissue.cell, statistic)
   } else if(stat_test[1] != "ES") {
     output <- output %>% dplyr::select(tissue.cell, p.value)
+  } else if(stat_test[1] == "ES") {
+    output <- output %>% dplyr::select(tissue.cell, es.value)
   }
 
   # Calculate empirical p-values and z-values from the previously computed statistical values.
   if(emp_p_val){
-    if(stat_test[1] == "ES") {
-      p_z_val_out <- parallel::mclapply(colnames(stat_df), mc.cores = n_cores, FUN = function(col){
+
+    p_z_val_out <- parallel::mclapply(colnames(stat_df), mc.cores = n_cores, FUN = function(col){
+
+      if(stat_test[1] == "ES") {
         stat_an <- output %>% dplyr::filter(tissue.cell == col) %>% dplyr::select(es.value)
-        stat_an <- stat_an[[1]]
-        stat_null <- stat_df[,col]
-        stat_null <- stat_null[[1]]
-        #p_value <- (sum(stat_null > stat_an) + 1) / (n_rep) # one-sided
-        #p_value <- ( sum(stat_null < -abs(stat_an)) + sum(stat_null > abs(stat_an)) ) / (n_rep) # two-sided
-        p_value <- ( sum(stat_null < -abs(stat_an)) + sum(stat_null > abs(stat_an)) +1) / (n_reps+1) # two-sided
-        z_value <- (stat_an - mean(stat_null)) / sd(stat_null)
-        return(c(p_value, unname(z_value)))
-      })
-    } else {
-      p_z_val_out <- parallel::mclapply(colnames(stat_df), mc.cores = n_cores, FUN = function(col){
+      } else {
         stat_an <- output %>% dplyr::filter(tissue.cell == col) %>% dplyr::select(statistic)
-        stat_an <- stat_an[[1]]
-        stat_null <- stat_df[,col]
-        stat_null <- stat_null[[1]]
-        #p_value <- (sum(stat_null > stat_an) + 1) / (n_reps) # one-sided
-        #p_value <- ( sum(stat_null < -abs(stat_an)) + sum(stat_null > abs(stat_an)) ) / (n_reps) # two-sided
-        p_value <- ( sum(stat_null < -abs(stat_an)) + sum(stat_null > abs(stat_an)) +1) / (n_reps+1) # two-sided
-        z_value <- (stat_an - mean(stat_null)) / sd(stat_null)
-        return(c(p_value, unname(z_value)))
-      })
-    }
+      }
+
+      stat_an <- stat_an[[1]]
+      stat_null <- stat_df[,col]
+      stat_null <- stat_null[[1]]
+
+      if(alternative == "two.sided") {
+        p_value <- ( sum(stat_null < -abs(stat_an)) + sum(stat_null > abs(stat_an)) +1 ) / (n_reps+1) # two-sided
+      } else if(alternative == "greater" & stat_test[1] == "KS") {
+        # Opposite direction of the W/T/ES statistics
+        p_value <- ( sum(stat_null < stat_an) +1 ) / (n_reps+1) # one-sided
+      } else if(alternative == "less" & stat_test[1] == "KS") {
+        # Opposite direction of the W/T/ES statistics
+        p_value <- ( sum(stat_null > stat_an) +1 ) / (n_reps+1) # one-sided
+      } else if(alternative == "greater" & stat_test[1] != "KS") {
+        p_value <- ( sum(stat_null > stat_an) +1 ) / (n_reps+1) # one-sided
+      } else if(alternative == "less" & stat_test[1] != "KS") {
+        p_value <- ( sum(stat_null < stat_an) +1 ) / (n_reps+1) # one-sided
+      }
+
+
+      z_value <- (stat_an - mean(stat_null)) / sd(stat_null)
+      return(c(p_value, unname(z_value)))
+    })
 
     p_z_val_out <- tibble::tibble(as.data.frame(Reduce(rbind, p_z_val_out)))
     names(p_z_val_out) <- c("p.value", "Z.value")
     p_val_out <- p_z_val_out$p.value
     z_val_out <- p_z_val_out$Z.value
-    if(z_val_norm){
-      #z_val_out <- z_val_out / max(z_val_out) # approach 1
-      z_val_out <- (z_val_out - min(z_val_out)) / (max(z_val_out) - min(z_val_out)) # approach 2
-    }
 
     # p_val_out[p_val_out > 1] <- 1.0
     # p_val_out[p_val_out == 0] <- 1 / n_reps
@@ -489,27 +493,20 @@ statistical_test <- function(data,
     output$p.value <- p.adjust(output$p.value, method = "fdr")
   }
 
-  # Calculate ES values (from ssGSEA method) and append to output.
-  if(es_val & "es.value" %in% colnames(output)){
-    output <- output %>% dplyr::relocate(es.value, .after = last_col())
-  } else if(es_val) {
-    es <- ssgsea(data, geneSet = subset, n_cores = n_cores, es_val_norm = es_val_norm)
-    output <- output %>% tibble::add_column(es.value = es$es.value)
-  }
-
   # Sort the output values.
-  if(emp_p_val & es_val) {
-    output <- output %>% dplyr::arrange(desc(z.value), desc(es.value))
-  } else if(emp_p_val) {
-    output <- output %>% dplyr::arrange(desc(z.value))
-  } else if(es_val) {
-    output <- output %>% dplyr::arrange(desc(es.value), p.value)
+  if(emp_p_val) {
+    output <- output %>% dplyr::arrange(p.value, desc(z.value))
+  } else if(stat_test == "ES" & !emp_p_val) {
+    output <- output %>% dplyr::arrange(desc(es.value))
   } else {
     output <- output %>% dplyr::arrange(p.value)
   }
 
-
-  output_list <- list(output = output, stat_df = stat_df)
+  if(emp_p_val) {
+    output_list <- list(output = output, stat_df = stat_df)
+  } else {
+    output_list <- list(output = output, stat_df = NULL)
+  }
 
   return(output_list)
 }
@@ -649,17 +646,13 @@ plot_hist <- function(output,
 
 
 #' export
-filter_results <- function(input, p_threshold = c(0.001, 0.005, 0.01), es_threshold = c(6500, 6000, 5700, 5300)){
+filter_results <- function(input, p_threshold = c(0.001, 0.005, 0.01, 0.05)){
+
+  output <- input %>% dplyr::filter(p.value <= p_threshold)
+
   if("z.value" %in% colnames(input)) {
-    output <- input %>% dplyr::filter(p.value <= p_threshold)
-    try(
-      output <- output %>% dplyr::filter(es.value >= es_threshold)
-    )
     output <- output %>% dplyr::arrange(desc(z.value))
   } else {
-    try(
-      output <- input %>% dplyr::filter(es.value >= es_threshold)
-    )
     output <- output %>% dplyr::arrange(desc(p.value))
   }
 
@@ -685,7 +678,6 @@ filter_results <- function(input, p_threshold = c(0.001, 0.005, 0.01), es_thresh
 #' @param p_value If TRUE, calculates and outputs the p-value (for the selected test statistic) for the expression specificity analysis. Defaults to TRUE.
 #' @param p_value_adjust If TRUE, adjusts the calculated p-values for multiple testing, using the FDR approach. Defaults to TRUE.
 #' @param emp_p_value If TRUE, calculates empirical p-values by randomly sampling a number of genes from the CELLEX dataset equivalent to the number of genes in the input_set, which is repeated a number of times (see parameter "reps") to obtain a null distribution. The null distribution is then compared to the test statistic for the genes in the input_set. Related parameters: "reps", "num_cores", "num_background_genes", "statistic_plot".
-#' @param es_value If TRUE, calculates enrichment scores for the input_set for each cell type / tissue type in the CELLEX. Uses ssGSEA approach implemented in the R package GSVA.
 #' @param reps Default is 1000. The number of random samplings to perform when computing the null distribution that is used to calculate the empirical p-value (see parameter "emp_p_value").
 #' @param num_cores Default is 1. The number of cores/threads to use when computing the null distribution for the empirical p-value (see parameter "emp_p_value").
 #' @param num_background_genes Default is 0 (which means to use all background genes). The number of background genes to use when computing the null distribution for the empirical p-value (see parameter "emp_p_value").
@@ -693,17 +685,15 @@ filter_results <- function(input, p_threshold = c(0.001, 0.005, 0.01), es_thresh
 #' @param save_output Default is TRUE. Whether to save (TRUE) or not save (FALSE) the output of the tool. If TRUE, the tool saves the output dataframe as a .csv file.
 #'
 #' @export
-cellex_analysis <- function(input_set, # input gene set or protein set.
+gsea_analysis <- function(input_set, # input gene set or protein set.
                             input_type = c("ensembl", "uniprot", "gene"),
                             cellex_data = c(1, 2, 3),
                             emp_p_val = TRUE,
                             p_val_adjust = FALSE,
-                            es_val = TRUE,
-                            es_val_norm = FALSE,
-                            z_val_norm = FALSE,
                             first_order = FALSE,
                             all_genes_as_background = FALSE,
                             statistic = c("W", "KS", "T", "ES"),
+                            alternative = c("two.sided", "less", "greater"),
                             n_reps = 1000,
                             n_cores = 1,
                             n_background = 0,
@@ -714,7 +704,6 @@ cellex_analysis <- function(input_set, # input gene set or protein set.
                             get_null_dist = TRUE,
                             filter_output = FALSE,
                             p_threshold = 0.005,
-                            es_threshold = 6500,
                             del_stat_vals = TRUE,
                             output_stat_df = FALSE
                             ) {
@@ -745,21 +734,14 @@ cellex_analysis <- function(input_set, # input gene set or protein set.
   # Load cellex data.
   message("\nLoading CELLEX data...")
   if(cellex_data[1] == 1) {
-    cellex_data <- readr::read_csv(system.file("cellex_data", "tabula_muris.gz", package = "cellex.analysis"))
+    cellex_data <- readr::read_csv(system.file("cellex_data", "tabula_muris.gz", package = "cellex.gsea"))
   } else if(cellex_data[1] == 2) {
-    cellex_data <- readr::read_csv(system.file("cellex_data", "gtex_v8.gz", package = "cellex.analysis"))
+    cellex_data <- readr::read_csv(system.file("cellex_data", "gtex_v8.gz", package = "cellex.gsea"))
   } else if(cellex_data[1] == 3) {
-    cellex_data <- readr::read_csv(system.file("cellex_data", "hcl.gz", package = "cellex.analysis"))
+    cellex_data <- readr::read_csv(system.file("cellex_data", "hcl.gz", package = "cellex.gsea"))
   } else {
     cellex_data <- readr::read_csv(cellex_data)
   }
-
-  # Criteria for which genes to use: MAYBE
-  # idx <- sapply(1:nrow(cellex_data), FUN = function(row_num){
-  #   row <- sort(unlist(cellex_data[row_num,-1], use.names = FALSE), decreasing = TRUE)
-  #   return( any(row > 0.5) & any((max(row) / mean(row)) > 10) & (row[1] / row[2]) > 1.1 & (sum(test != 0) / sum(test == 0)) < 1/3 )
-  # })
-  # good_genes <- unlist(cellex_data[idx,1], use.names = FALSE)
 
   # Choose subset genes and background genes.
   subset_genes <- cellex_data$gene[cellex_data$gene %in% gene_set$ensembl_gene_id]
@@ -784,11 +766,9 @@ cellex_analysis <- function(input_set, # input gene set or protein set.
                                  subset = subset_genes,
                                  background = background_genes,
                                  stat_test = statistic[1],
+                                 alternative = alternative,
                                  p_val_adjust = p_val_adjust,
                                  emp_p_val = emp_p_val,
-                                 z_val_norm = z_val_norm,
-                                 es_val = es_val,
-                                 es_val_norm = es_val_norm,
                                  n_reps = n_reps,
                                  n_cores = n_cores,
                                  n_background = n_background,
@@ -815,15 +795,16 @@ cellex_analysis <- function(input_set, # input gene set or protein set.
       if(statistic[1] != "ES" & del_stat_vals) {
         # Remove the "statistic" column.
         output <- output %>% dplyr::select(-statistic)
+      } else if(statistic[1] == "ES" & del_stat_vals) {
+        # Remove the "es.value" column.
+        output <- output %>% dplyr::select(-es.value)
       }
     }
 
 
     # Whether to filter output before returning it.
     if(filter_output) {
-      output <- filter_results(input = output,
-                               p_threshold = p_threshold,
-                               es_threshold = es_threshold)
+      output <- filter_results(input = output, p_threshold = p_threshold)
     }
 
     # Whether to save the output to a file.
@@ -855,8 +836,9 @@ cellex_analysis <- function(input_set, # input gene set or protein set.
       output_list <- list(output = output, stat_df = stat_df)
       return(output_list)
     } else {
-      output_list <- list(output = output, stat_df = NULL)
-      return(output_list)
+      #output_list <- list(output = output, stat_df = NULL)
+      #return(output_list)
+      return(output)
     }
   }
 }
