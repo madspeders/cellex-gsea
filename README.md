@@ -4,29 +4,29 @@ R package to calculate cell specific expression of genes, using an input gene se
 ## Installation instructions
 Use the function `install_github` from the package `devtools` to install this R package:
 ```R
-devtools::install_github("Mporse/cellex.analysis")
+devtools::install_github("Mporse/cellex-gsea")
 ```
 
 ## Short tutorial
 There are several functions in the package, however you should only use one for the analysis (all the other functions are helper functions to make the tool work correctly):
 ```R
-cellex_analysis()
+gsea_analysis()
 ```
 
 Follow these to run an analysis of a input gene set using the function:  
 1. Load the package using:  
 ```R
-library(cellex.analysis)
+library(cellex.gsea)
 ```
 
 2. Save your gene set (in ENSEMBL or HGNC format) or protein set (in UNIPROT format) as a variable. A gene set that is enriched in the liver (obtained from the Human Protein Atlas, [proteinatlas.org](https://www.proteinatlas.org/)) is already included in the package, and can be loaded with the following command:
 ```R
-gene_set <- readRDS(system.file("gene_set_data", "liver.rds", package = "cellex.analysis"))
+gene_set <- readRDS(system.file("gene_set_data", "liver.rds", package = "cellex.gsea"))
 ```
 
 3. Run the tool #1 analysis. If the input is in ENSEMBL format, you only need to supply the input gene set, as such:
 ```R
-cellex_analysis(gene_set)
+gsea_analysis(gene_set)
 ```
 
 That's it!  
@@ -37,12 +37,12 @@ That's it!
 The input gene set is not always in ENSEMBL format. Therefore, the argument `input_type` in the function needs to be changed:  
 * **If the input set is in UNIPROT format:**  
 ```R
-cellex_analysis(gene_set, input_type = "uniprot")
+gsea_analysis(gene_set, input_type = "uniprot")
 ```
 
 * **If the input set is in HGNC format:**
 ```R
-cellex_analysis(gene_set, input_type = "gene")
+gsea_analysis(gene_set, input_type = "gene")
 ```
 
 ### Using other CELLEX datasets  
@@ -60,9 +60,10 @@ By default, the p-values are calculated using the Wilcoxon test. This can be cha
 * `statistic = "W"` to use the Wilcoxon test.  
 * `statistic = "KS"` to use the Kolmogorov–Smirnov test.  
 * `statistic = "T"` to use the Student's t-test.  
+* `statistic = "ES"` to use the ssGSEA algorithm from the GSVA package to calculate enrichment scores (ES).
 
 ### Other arguments  
 To see which other arguments are available and which values they accept, check the R documentation for the function:  
 ```R
-?cellex_analysis
+?gsea_analysis
 ```
