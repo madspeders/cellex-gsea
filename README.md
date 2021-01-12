@@ -1,4 +1,4 @@
-# cellex.analysis
+# CELLEX-GSEA
 R package to calculate cell specific expression of genes, using an input gene set and a CELLEX dataset.  
 
 ## Installation instructions
