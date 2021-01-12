@@ -260,7 +260,24 @@ statistical_test <- function(data,
 
       dir.create("./tmp", showWarnings = FALSE)
       token <- readRDS(system.file("token", "token.rds", package = "cellex.gsea"))
-      rdrop2::drop_download(path = paste0("/null_dists/", stat_test[1], "/", number, ".rds"), local_path = paste0("./tmp/", number, ".rds"), overwrite = TRUE, dtoken = token)
+
+      if(stat_test[1] == "KS" & alternative == "less") {
+        rdrop2::drop_download(path = paste0("/null_dists/KS_less/", number, ".rds"),
+                              local_path = paste0("./tmp/", number, ".rds"),
+                              overwrite = TRUE,
+                              dtoken = token)
+      } else if(stat_test[1] == "KS" & alternative == "less") {
+        rdrop2::drop_download(path = paste0("/null_dists/KS_greater/", number, ".rds"),
+                              local_path = paste0("./tmp/", number, ".rds"),
+                              overwrite = TRUE,
+                              dtoken = token)
+      } else {
+        rdrop2::drop_download(path = paste0("/null_dists/", stat_test[1], "/", number, ".rds"),
+                              local_path = paste0("./tmp/", number, ".rds"),
+                              overwrite = TRUE,
+                              dtoken = token)
+      }
+
       stat_df <- readRDS(paste0("./tmp/", number, ".rds"))
       file.remove(paste0("./tmp/", number, ".rds"))
       unlink("./tmp", recursive = TRUE)
