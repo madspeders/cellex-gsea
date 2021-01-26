@@ -42,18 +42,15 @@ gsea_analysis(gene_set, input_type = "uniprot")
 
 * **If the input set is in HGNC format:**
 ```R
-gsea_analysis(gene_set, input_type = "gene")
+gsea_analysis(gene_set, input_type = "hgnc")
 ```
 
 ### Using other CELLEX datasets  
-The used CELLEX dataset can be provided by the user (so setting the argument `cellex_data` equal to the path to the dataset), or one of two datasets included in the package. Set the argument `cellex_data` equal to **1** to use the Tabula Muris CELLEX dataset, or set equal to **2** to use the GTEX_v8 CELLEX dataset.  
+The used CELLEX dataset can be provided by the user (so setting the argument `cellex_data` equal to the path to the dataset), or one of three datasets included in the package. Set the argument `cellex_data` equal to **1** to use the Tabula Muris CELLEX dataset, set equal to **2** to use the GTEX_v8 CELLEX dataset, or set sequal to **3** to use the HCL CELLEX dataset.  
 
 ### Specifying the preferred output  
-Several output values can be calculated using the tool:  
-* Set argument `p_value` equal to `TRUE` (default) to calculate p-values for each cell type, otherwise set equal to `FALSE`.  
-* Set argument `p_value_adjust` equal to `TRUE` (default) to correct the p-values using the FDR approach, otherwise set equal to `FALSE`.  
+It can be specified whether or not to calulate empirical p-values:  
 * Set argument `emp_p_value` equal to `TRUE` to calculate empirical p-values for each cell type (this can take some time), otherwise set equal to `FALSE` (default).  
-* Set argument `es_value` equal to `TRUE` to calculate enrichment scores (using the ssGSEA approach from the GSVA package), otherwise set equal to `FALSE` (default).  
   
 ### Specifying the test statistics  
 By default, the p-values are calculated using the Wilcoxon test. This can be changed by changing the value of the argument `statistic`:
@@ -67,3 +64,13 @@ To see which other arguments are available and which values they accept, check t
 ```R
 ?gsea_analysis
 ```
+
+### Credits
+The tool makes use of ESµ values from the CELLEX tool:  
+* GitHub: https://github.com/perslab/CELLEX
+* Journal article (_P. N. Timshel, J. J. Thompson, and T. H. Pers_): https://elifesciences.org/articles/55851
+
+The tool also makes use of code from the GSVA package for performing the ssGSEA approach:  
+* GitHub: https://github.com/rcastelo/GSVA
+* Bioconductor: https://www.bioconductor.org/packages/release/bioc/html/GSVA.html
+* Journal article (_S. Hänzelmann, R. Castelo, and J. Guinney_): https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-14-7
