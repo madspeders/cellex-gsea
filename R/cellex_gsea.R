@@ -9,9 +9,9 @@
 #' @importFrom magrittr %>%
 
 
-
+#' @export
 get_alias <- function(input,
-                      input_type = c("ensembl", "uniprot", "gene"),
+                      input_type = c("ensembl", "uniprot", "hgnc"),
                       ensembl_dataset = "hsapiens_gene_ensembl",
                       ensembl_verbose = TRUE,
                       return_only_ensembl = FALSE,
@@ -19,7 +19,7 @@ get_alias <- function(input,
 ){
 
   if(download_biomart_data){
-    loop <- 20
+    loop <- 5
 
     while(loop != 0){
       ### Regarding biomaRt ###
@@ -33,8 +33,6 @@ get_alias <- function(input,
         loop <- loop - 1
       }
     }
-  } else {
-    ensembl <- readRDS(system.file("biomart_data", "biomart_2020.rds", package = "cellex.gsea"))
   }
 
   if(!exists("ensembl")){
@@ -51,7 +49,7 @@ get_alias <- function(input,
     alias_df <- alias_df %>% dplyr::add_row(data.frame(ensembl_gene_id = missing,
                                                        hgnc_symbol = rep("", length(missing)),
                                                        uniprotswissprot = rep("", length(missing))))
-  } else if(input_type[1] == "gene"){
+  } else if(input_type[1] == "hgnc"){
     alias_df <- biomaRt::getBM(attributes = c("ensembl_gene_id", "hgnc_symbol", "uniprotswissprot"),
                                filters = "hgnc_symbol", values = input, mart = ensembl)
     alias_df <- alias_df %>%
@@ -90,7 +88,7 @@ first_order_network <- function(input,
                                 ensembl_dataset = "hsapiens_gene_ensembl",
                                 ensembl_verbose = TRUE,
                                 return_only_ensembl = FALSE,
-                                download_biomart_data = TRUE
+                                download_biomart_data = FALSE
 ){
   # Read in ppi data, generate graph and detect first order proteins.
   ppi_data <- readr::read_tsv(file = ppi_network, col_names = col_names)
@@ -217,8 +215,7 @@ ssgsea <- function(data, geneSet, alpha=0.25, n_cores = 1, es_val_norm = FALSE){
 statistical_test <- function(data,
                              subset,
                              background,
-                             stat_test = c("W", "KS", "T", "ES"),
-                             alternative = c("two.sided", "less", "greater")[1],
+                             stat_test = c("KS", "T", "W", "ES"),
                              emp_p_val = TRUE,
                              p_val_adjust = FALSE,
                              n_reps = 1000,
@@ -261,13 +258,8 @@ statistical_test <- function(data,
       dir.create("./tmp", showWarnings = FALSE)
       token <- readRDS(system.file("token", "token.rds", package = "cellex.gsea"))
 
-      if(stat_test[1] == "KS" & alternative == "less") {
+      if(stat_test[1] == "KS") {
         rdrop2::drop_download(path = paste0("/null_dists/KS_less/", number, ".rds"),
-                              local_path = paste0("./tmp/", number, ".rds"),
-                              overwrite = TRUE,
-                              dtoken = token)
-      } else if(stat_test[1] == "KS" & alternative == "less") {
-        rdrop2::drop_download(path = paste0("/null_dists/KS_greater/", number, ".rds"),
                               local_path = paste0("./tmp/", number, ".rds"),
                               overwrite = TRUE,
                               dtoken = token)
@@ -297,7 +289,7 @@ statistical_test <- function(data,
         stat_df_list <- parallel::mclapply(X = 1:n_reps, mc.cores = n_cores, FUN = function(i){
           stat_vec <- matrixTests::col_wilcoxon_twosample(x = data[to_sample[,i],],
                                                           y = data[!(rownames(data) %in% to_sample[,i]),],
-                                                          alternative = alternative)$statistic
+                                                          alternative = "greater")$statistic
           return(stat_vec)
         })
 
@@ -306,7 +298,7 @@ statistical_test <- function(data,
         stat_df_list <- parallel::mclapply(X = 1:n_reps, mc.cores = n_cores, FUN = function(i){
           stat_vec <- matrixTests::col_t_welch(x = data[to_sample[,i],],
                                                y = data[!(rownames(data) %in% to_sample[,i]),],
-                                               alternative = alternative)$statistic
+                                               alternative = "greater")$statistic
           return(stat_vec)
         })
 
@@ -316,7 +308,7 @@ statistical_test <- function(data,
           for(j in 1:length(stat_vec)){
             stat_vec[j] <- ks.test(x = data[(to_sample[,i]),j],
                                    y = data[!(rownames(data) %in% to_sample[,i]),j],
-                                   alternative = alternative)$statistic
+                                   alternative = "less")$statistic
           }
           return(stat_vec)
         })
@@ -412,7 +404,7 @@ statistical_test <- function(data,
   if(stat_test[1] == "W"){
     output <- matrixTests::col_wilcoxon_twosample(x = data[subset,],
                                                   y = data[background,],
-                                                  alternative = alternative)
+                                                  alternative = "greater")
     output <- output %>%
       tibble::rownames_to_column(var = "tissue.cell") %>%
       tibble::as_tibble() %>%
@@ -420,7 +412,7 @@ statistical_test <- function(data,
   } else if(stat_test[1] == "T") {
     output <- matrixTests::col_t_welch(x = data[subset,],
                                        y = data[background,],
-                                       alternative = alternative)
+                                       alternative = "greater")
     output <- output %>%
       tibble::rownames_to_column(var = "tissue.cell") %>%
       tibble::as_tibble() %>%
@@ -429,7 +421,7 @@ statistical_test <- function(data,
     output <- parallel::mclapply(names, mc.cores = n_cores, FUN = function(col){
       test <- ks.test(x = data[subset, col],
                       y = data[background, col],
-                      alternative = alternative)
+                      alternative = "less")
       df.test <- broom::tidy(test)
       df.test <- df.test %>% tibble::add_column(tissue.cell = col, .before = "statistic")
       return(df.test)
@@ -467,22 +459,10 @@ statistical_test <- function(data,
       stat_null <- stat_df[,col]
       stat_null <- stat_null[[1]]
 
-      if(alternative == "two.sided") {
-        p_value <- ( sum(stat_null < -abs(stat_an)) + sum(stat_null > abs(stat_an)) +1 ) / (n_reps+1) # two-sided
-      } else if(alternative == "greater" & stat_test[1] == "KS") {
-        # Opposite direction of the W/T/ES statistics
-        p_value <- ( sum(stat_null < stat_an) +1 ) / (n_reps+1) # one-sided
-      } else if(alternative == "less" & stat_test[1] == "KS") {
-        # Opposite direction of the W/T/ES statistics
-        p_value <- ( sum(stat_null > stat_an) +1 ) / (n_reps+1) # one-sided
-      } else if(alternative == "greater" & stat_test[1] != "KS") {
-        p_value <- ( sum(stat_null > stat_an) +1 ) / (n_reps+1) # one-sided
-      } else if(alternative == "less" & stat_test[1] != "KS") {
-        p_value <- ( sum(stat_null < stat_an) +1 ) / (n_reps+1) # one-sided
-      }
-
-
+      # Calculate empirival p-values, and z-values.
+      p_value <- ( sum(stat_null > stat_an) +1 ) / (n_reps+1) # one-sided
       z_value <- (stat_an - mean(stat_null)) / sd(stat_null)
+
       return(c(p_value, unname(z_value)))
     })
 
@@ -615,7 +595,7 @@ plot_box <- function(output,
 #' @export
 plot_hist <- function(output,
                       stat_df,
-                      statistic = c("W", "KS", "T", "ES"),
+                      statistic = c("KS", "T", "W", "ES"),
                       save_plots = TRUE) { # "output" parameter needs to have a column with "statistic" values!
   tissues <- output$tissue.cell[1:12]
   if(statistic[1] != "ES") {
@@ -626,7 +606,7 @@ plot_hist <- function(output,
   intercept <- unname(intercept[[1]])
   intercepts <- c()
   for(number in intercept) {
-    intercepts <- c(intercepts, rep(x = number, times = n_reps))
+    intercepts <- c(intercepts, rep(x = number, times = nrow(stat_df)))
   }
   stat_df <- stat_df %>% dplyr::select(tissues)
   stat_df <- reshape2::melt(stat_df, )
@@ -650,9 +630,9 @@ plot_hist <- function(output,
     ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[7]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
     ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[8]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
     ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[9]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
-    ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[10]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
-    ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[11]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
-    ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[12]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1)
+    ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[10]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1)
+    # ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[11]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1) +
+    # ggplot2::geom_vline(data = dplyr::filter(stat_df, tissue.cell == tissues[12]), ggplot2::aes(xintercept = unique(intercept)), color = "red", linetype = "longdash", size = 1)
 
   if(save_plots) {
     dir.create("./plots", showWarnings = FALSE)
@@ -689,46 +669,50 @@ filter_results <- function(input, p_threshold = c(0.001, 0.005, 0.01, 0.05)){
 #' @param input_set Gene set or protein set, as a character vector.
 #' @param input_type What format the input_set is in. One of "ensembl" (ENSEMBL format), "uniprot" (UNIPROT format), or "gene" (HGNC format). Defaults to "ensembl" if no user specified value is selected.
 #' @param cellex_data The CELLEX dataset to use in the package - must be in .csv format, and can also be gzip compressed as well. The path to a user-provided CELLEX dataset can be put here. Otherwise, three CELLEX datasets are included in the package, which can also be used. Set "cellex_data = 1" (default) for tabula_muris cellex dataset, set "cellex_data = 2" for gtex_v8 cellex dataset, or set "cellex_data = 3 for human cell landscape (HCL) cellex dataset.
-#' @param first_order If TRUE, obtain the first order network for the input genes / proteins, and use for the analysis. Defaults to FALSE.
-#' @param all_genes_as_background If TRUE, use all genes in the CELLEX dataset as background for analysis. If FALSE, use all genes in the CELLEX dataset which are not in the input_set, as background for analysis.
-#' @param statistic Which test statistic to use. One of "W" (Wilcoxon test), "KS" (Kolmogorov–Smirnov test), or "T" (Student's t-test). Defaults to "W".
-#' @param p_value If TRUE, calculates and outputs the p-value (for the selected test statistic) for the expression specificity analysis. Defaults to TRUE.
-#' @param p_value_adjust If TRUE, adjusts the calculated p-values for multiple testing, using the FDR approach. Defaults to TRUE.
+#' @param statistic Which test statistic to use. One of "KS" (Kolmogorov-Smirnov test), "W" (Wilcoxon test), "T" (Student's t-test), and "ES" (the ssGSEA approach). Defaults to "KS".
 #' @param emp_p_value If TRUE, calculates empirical p-values by randomly sampling a number of genes from the CELLEX dataset equivalent to the number of genes in the input_set, which is repeated a number of times (see parameter "reps") to obtain a null distribution. The null distribution is then compared to the test statistic for the genes in the input_set. Related parameters: "reps", "num_cores", "num_background_genes", "statistic_plot".
-#' @param reps Default is 1000. The number of random samplings to perform when computing the null distribution that is used to calculate the empirical p-value (see parameter "emp_p_value").
-#' @param num_cores Default is 1. The number of cores/threads to use when computing the null distribution for the empirical p-value (see parameter "emp_p_value").
-#' @param num_background_genes Default is 0 (which means to use all background genes). The number of background genes to use when computing the null distribution for the empirical p-value (see parameter "emp_p_value").
-#' @param statistic_plot Default is FALSE. Whether to plot (TRUE) or not plot (FALSE) the null distribution and the analytical test statistic for the most significant cell type.
-#' @param save_output Default is TRUE. Whether to save (TRUE) or not save (FALSE) the output of the tool. If TRUE, the tool saves the output dataframe as a .csv file.
-#'
+#' @param p_threshold The p-value threshold used for filtering the results in the outputted table. Is only used if the "p_threshold" parameter is set to TRUE.
+#' @param p_value_adjust If TRUE, adjusts the calculated p-values for multiple testing, using the FDR approach. Defaults to FALSE.
+#' @param n_cores Default is 1. The number of cores/threads to use when computing the null distribution for the empirical p-value (see parameter "emp_p_value").
+#' @param n_reps Default is 1000. The number of random samplings to perform when computing the null distribution that is used to calculate the empirical p-value (see parameter "emp_p_value").
+#' @param n_background Default is 0 (which means to use all background genes). The number of background genes to use when computing the null distribution for the empirical p-value (see parameter "emp_p_value").
+#' @param all_genes_as_background If TRUE, use all genes in the CELLEX dataset as background for analysis. If FALSE, use all genes in the CELLEX dataset which are not in the input_set, as background for analysis.
+#' @param first_order If TRUE, obtain the first order network for the input genes / proteins, and use for the analysis. Defaults to FALSE.
+#' @param generate_plots If TRUE, generates plots when running the tool. Defaults to TRUE.
+#' @param save_plots If TRUE, saves the plots the tool created to the working directory, to a folder named "plots". Defaults to TRUE.
+#' @param save_output If TRUE, saves the generated table to the working directory, to a folder named "outputs". The table is saved as both a .csv and .rds file. Defaults to TRUE.
+#' @param download_biomart If TRUE, uses the biomaRt package to connect to an online database of gene names, for gene names conversion - NB: Can increase computation time. If FALSE, uses an offline "snapshot" of the database, which comes with the tool. Defaults to FALSE.
+#' @param get_null_dist Used in combination with the "emp_p_value" parameter. If "get_null_dist" is TRUE, downloads the appropriate null distribution of test statistics for the gene set size used when running the tool. If FALSE, a new null distribution is calculated locally. Defaults to TRUE.
+#' @param del_stat_vals Parameter reserved for use in online tool. DO NOT CHANGE.
+#' @param output_stat_df Parameter reserved for use in online tool. DO NOT CHANGE.
+
+
 #' @export
 gsea_analysis <- function(input_set, # input gene set or protein set.
-                            input_type = c("ensembl", "uniprot", "gene"),
-                            cellex_data = c(1, 2, 3),
-                            emp_p_val = TRUE,
-                            p_val_adjust = FALSE,
-                            first_order = FALSE,
-                            all_genes_as_background = FALSE,
-                            statistic = c("W", "KS", "T", "ES"),
-                            alternative = c("two.sided", "less", "greater"),
-                            n_reps = 1000,
-                            n_cores = 1,
-                            n_background = 0,
-                            generate_plots = TRUE,
-                            save_plots = TRUE,
-                            save_output = TRUE,
-                            download_biomart = TRUE,
-                            get_null_dist = TRUE,
-                            filter_output = FALSE,
-                            p_threshold = 0.005,
-                            del_stat_vals = TRUE,
-                            output_stat_df = FALSE
-                            ) {
+                          input_type = c("ensembl", "uniprot", "hgnc"),
+                          cellex_data = c(1, 2, 3),
+                          statistic = c("KS", "T", "W", "ES"),
+                          emp_p_val = TRUE,
+                          filter_output = FALSE,
+                          p_threshold = 0.001,
+                          p_val_adjust = FALSE,
+                          n_cores = 1,
+                          n_reps = 1000,
+                          n_background = 0,
+                          all_genes_as_background = FALSE,
+                          first_order = FALSE,
+                          generate_plots = TRUE,
+                          save_plots = TRUE,
+                          save_output = TRUE,
+                          download_biomart = FALSE,
+                          get_null_dist = TRUE,
+                          del_stat_vals = TRUE,
+                          output_stat_df = FALSE
+                          ) {
 
   set.seed(42)
 
   # Obtain aliases for the input gene set.
-  #source("gene_set.R")
   message("Using BioMart to obtain ENSEMBL, UNIPROT and HGNC names...")
   gene_set <- get_alias(input = input_set,
                         input_type = input_type,
@@ -762,7 +746,7 @@ gsea_analysis <- function(input_set, # input gene set or protein set.
 
   # Choose subset genes and background genes.
   subset_genes <- cellex_data$gene[cellex_data$gene %in% gene_set$ensembl_gene_id]
-  # subset_genes <- intersect(subset_genes, good_genes) # MAYBE
+
   if(all_genes_as_background){
     background_genes <- cellex_data$gene
   } else {
@@ -783,7 +767,6 @@ gsea_analysis <- function(input_set, # input gene set or protein set.
                                  subset = subset_genes,
                                  background = background_genes,
                                  stat_test = statistic[1],
-                                 alternative = alternative,
                                  p_val_adjust = p_val_adjust,
                                  emp_p_val = emp_p_val,
                                  n_reps = n_reps,
@@ -803,7 +786,7 @@ gsea_analysis <- function(input_set, # input gene set or protein set.
     if(generate_plots & emp_p_val) {
       # Histograms.
       message("\nGenerating histograms of statistics values...")
-
+      plot_hist(output = output, stat_df = stat_df, statistic = statistic[1], save_plots = save_plots)
       message("Done!")
     }
 

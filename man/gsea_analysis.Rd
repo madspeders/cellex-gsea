@@ -6,24 +6,23 @@
 \usage{
 gsea_analysis(
   input_set,
-  input_type = c("ensembl", "uniprot", "gene"),
+  input_type = c("ensembl", "uniprot", "hgnc"),
   cellex_data = c(1, 2, 3),
+  statistic = c("KS", "T", "W", "ES"),
   emp_p_val = TRUE,
+  filter_output = FALSE,
+  p_threshold = 0.001,
   p_val_adjust = FALSE,
-  first_order = FALSE,
-  all_genes_as_background = FALSE,
-  statistic = c("W", "KS", "T", "ES"),
-  alternative = c("two.sided", "less", "greater"),
-  n_reps = 1000,
   n_cores = 1,
+  n_reps = 1000,
   n_background = 0,
+  all_genes_as_background = FALSE,
+  first_order = FALSE,
   generate_plots = TRUE,
   save_plots = TRUE,
   save_output = TRUE,
-  download_biomart = TRUE,
+  download_biomart = FALSE,
   get_null_dist = TRUE,
-  filter_output = FALSE,
-  p_threshold = 0.005,
   del_stat_vals = TRUE,
   output_stat_df = FALSE
 )
@@ -35,27 +34,37 @@ gsea_analysis(
 
 \item{cellex_data}{The CELLEX dataset to use in the package - must be in .csv format, and can also be gzip compressed as well. The path to a user-provided CELLEX dataset can be put here. Otherwise, three CELLEX datasets are included in the package, which can also be used. Set "cellex_data = 1" (default) for tabula_muris cellex dataset, set "cellex_data = 2" for gtex_v8 cellex dataset, or set "cellex_data = 3 for human cell landscape (HCL) cellex dataset.}
 
-\item{first_order}{If TRUE, obtain the first order network for the input genes / proteins, and use for the analysis. Defaults to FALSE.}
+\item{statistic}{Which test statistic to use. One of "KS" (Kolmogorov-Smirnov test), "W" (Wilcoxon test), "T" (Student's t-test), and "ES" (the ssGSEA approach). Defaults to "KS".}
+
+\item{p_threshold}{The p-value threshold used for filtering the results in the outputted table. Is only used if the "p_threshold" parameter is set to TRUE.}
+
+\item{n_cores}{Default is 1. The number of cores/threads to use when computing the null distribution for the empirical p-value (see parameter "emp_p_value").}
+
+\item{n_reps}{Default is 1000. The number of random samplings to perform when computing the null distribution that is used to calculate the empirical p-value (see parameter "emp_p_value").}
+
+\item{n_background}{Default is 0 (which means to use all background genes). The number of background genes to use when computing the null distribution for the empirical p-value (see parameter "emp_p_value").}
 
 \item{all_genes_as_background}{If TRUE, use all genes in the CELLEX dataset as background for analysis. If FALSE, use all genes in the CELLEX dataset which are not in the input_set, as background for analysis.}
 
-\item{statistic}{Which test statistic to use. One of "W" (Wilcoxon test), "KS" (Kolmogorov–Smirnov test), or "T" (Student's t-test). Defaults to "W".}
+\item{first_order}{If TRUE, obtain the first order network for the input genes / proteins, and use for the analysis. Defaults to FALSE.}
 
-\item{save_output}{Default is TRUE. Whether to save (TRUE) or not save (FALSE) the output of the tool. If TRUE, the tool saves the output dataframe as a .csv file.}
+\item{generate_plots}{If TRUE, generates plots when running the tool. Defaults to TRUE.}
 
-\item{p_value}{If TRUE, calculates and outputs the p-value (for the selected test statistic) for the expression specificity analysis. Defaults to TRUE.}
+\item{save_plots}{If TRUE, saves the plots the tool created to the working directory, to a folder named "plots". Defaults to TRUE.}
 
-\item{p_value_adjust}{If TRUE, adjusts the calculated p-values for multiple testing, using the FDR approach. Defaults to TRUE.}
+\item{save_output}{If TRUE, saves the generated table to the working directory, to a folder named "outputs". The table is saved as both a .csv and .rds file. Defaults to TRUE.}
+
+\item{download_biomart}{If TRUE, uses the biomaRt package to connect to an online database of gene names, for gene names conversion - NB: Can increase computation time. If FALSE, uses an offline "snapshot" of the database, which comes with the tool. Defaults to FALSE.}
+
+\item{get_null_dist}{Used in combination with the "emp_p_value" parameter. If "get_null_dist" is TRUE, downloads the appropriate null distribution of test statistics for the gene set size used when running the tool. If FALSE, a new null distribution is calculated locally. Defaults to TRUE.}
+
+\item{del_stat_vals}{Parameter reserved for use in online tool. DO NOT CHANGE.}
+
+\item{output_stat_df}{Parameter reserved for use in online tool. DO NOT CHANGE.}
 
 \item{emp_p_value}{If TRUE, calculates empirical p-values by randomly sampling a number of genes from the CELLEX dataset equivalent to the number of genes in the input_set, which is repeated a number of times (see parameter "reps") to obtain a null distribution. The null distribution is then compared to the test statistic for the genes in the input_set. Related parameters: "reps", "num_cores", "num_background_genes", "statistic_plot".}
 
-\item{reps}{Default is 1000. The number of random samplings to perform when computing the null distribution that is used to calculate the empirical p-value (see parameter "emp_p_value").}
-
-\item{num_cores}{Default is 1. The number of cores/threads to use when computing the null distribution for the empirical p-value (see parameter "emp_p_value").}
-
-\item{num_background_genes}{Default is 0 (which means to use all background genes). The number of background genes to use when computing the null distribution for the empirical p-value (see parameter "emp_p_value").}
-
-\item{statistic_plot}{Default is FALSE. Whether to plot (TRUE) or not plot (FALSE) the null distribution and the analytical test statistic for the most significant cell type.}
+\item{p_value_adjust}{If TRUE, adjusts the calculated p-values for multiple testing, using the FDR approach. Defaults to FALSE.}
 }
 \description{
 This function takes as input a gene set (in ENSEMBL, UNIPROT, or HGNC format) and performs
