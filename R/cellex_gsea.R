@@ -9,7 +9,6 @@
 #' @importFrom magrittr %>%
 
 
-#' @export
 get_alias <- function(input,
                       input_type = c("ensembl", "uniprot", "hgnc"),
                       ensembl_dataset = "hsapiens_gene_ensembl",
@@ -510,7 +509,6 @@ statistical_test <- function(data,
 
 
 
-#' @export
 plot_bar <- function(output,
                      value_to_plot,
                      n_tissues = 10,
@@ -552,7 +550,6 @@ plot_bar <- function(output,
 
 
 
-#' @export
 plot_box <- function(output,
                      subset,
                      cellex_data,
@@ -592,7 +589,7 @@ plot_box <- function(output,
   }
 }
 
-#' @export
+
 plot_hist <- function(output,
                       stat_df,
                       statistic = c("KS", "T", "W", "ES"),
@@ -642,7 +639,6 @@ plot_hist <- function(output,
 
 
 
-#' export
 filter_results <- function(input, p_threshold = c(0.001, 0.005, 0.01, 0.05)){
 
   output <- input %>% dplyr::filter(p.value <= p_threshold)
@@ -685,7 +681,6 @@ filter_results <- function(input, p_threshold = c(0.001, 0.005, 0.01, 0.05)){
 #' @param get_null_dist Used in combination with the "emp_p_value" parameter. If "get_null_dist" is TRUE, downloads the appropriate null distribution of test statistics for the gene set size used when running the tool. If FALSE, a new null distribution is calculated locally. Defaults to TRUE.
 #' @param del_stat_vals Parameter reserved for use in online tool. DO NOT CHANGE.
 #' @param output_stat_df Parameter reserved for use in online tool. DO NOT CHANGE.
-
 
 #' @export
 gsea_analysis <- function(input_set, # input gene set or protein set.
