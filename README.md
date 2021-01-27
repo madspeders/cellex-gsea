@@ -54,10 +54,10 @@ It can be specified whether or not to calulate empirical p-values:
   
 ### Specifying the test statistics  
 By default, the p-values are calculated using the Wilcoxon test. This can be changed by changing the value of the argument `statistic`:
-* `statistic = "W"` to use the Wilcoxon test.  
 * `statistic = "KS"` to use the Kolmogorov–Smirnov test.  
-* `statistic = "T"` to use the Student's t-test.  
-* `statistic = "ES"` to use the ssGSEA algorithm from the GSVA package to calculate enrichment scores (ES).
+* `statistic = "T"` to use the Welch's T-test.  
+* `statistic = "W"` to use the Mann-Whitney U (Wilcoxon rank-sum) test.  
+* `statistic = "ES"` to use the ssGSEA approach from the GSVA package to calculate enrichment scores (ES).
 
 ### Other arguments  
 To see which other arguments are available and which values they accept, check the R documentation for the function:  
