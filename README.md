@@ -24,7 +24,7 @@ library(cellex.gsea)
 gene_set <- readRDS(system.file("gene_set_data", "liver.rds", package = "cellex.gsea"))
 ```
 
-3. Run the tool #1 analysis. If the input is in ENSEMBL format, you only need to supply the input gene set, as such:
+3. Run the enrichment analysis. If the input is in ENSEMBL format, you only need to supply the input gene set, as such:
 ```R
 gsea_analysis(gene_set)
 ```
