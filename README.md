@@ -4,7 +4,7 @@ R package to calculate cell specific expression of genes, using an input gene se
 ## Installation instructions
 Use the function `install_github` from the package `devtools` to install this R package:
 ```R
-devtools::install_github("Mporse/cellex-gsea")
+devtools::install_github("https://github.com/Mporse/cellex-gsea")
 ```
 
 ## Short tutorial
