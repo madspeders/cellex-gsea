@@ -51,6 +51,8 @@ The used CELLEX dataset can be provided by the user (so setting the argument `ce
 ### Specifying the preferred output  
 It can be specified whether or not to calulate empirical p-values:  
 * Set argument `emp_p_value` equal to `TRUE` to calculate empirical p-values for each cell type (this can take some time), otherwise set equal to `FALSE` (default).  
+
+**NB:** If calculating empirical P-values, I recommend using the Tabula Muris CELLEX dataset. Pre-computed null distributions have been made available online only for this dataset, and the package will download the proper null distribution (according to the size of the gene set). If calculating empirical P-values without using the pre-computed null distributions, make sure to increase the number of utilized cores through the `n_cores` argument (only possible on Unix systems), otherwise the computation can take a long time.  
   
 ### Specifying the test statistics  
 By default, the p-values are calculated using the Wilcoxon test. This can be changed by changing the value of the argument `statistic`:
