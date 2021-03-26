@@ -67,7 +67,11 @@ To see which other arguments are available and which values they accept, check t
 ?gsea_analysis
 ```
 
-### Credits
+## Web application  
+The tool has also been made available as a Shiny web application. It is being hosted on _shinyapps.io_ using the free tier, which means the app is limited to 25 active hours per month. Thus, the use of the web application is quite limited and I would recommend using the R package version instead whenever possible, since it yields the same results.  
+* Shiny web application: https://porse.shinyapps.io/cellex-gsea/
+
+## Credits  
 The tool makes use of ESµ values from the CELLEX tool:  
 * GitHub: https://github.com/perslab/CELLEX
 * Journal article (_P. N. Timshel, J. J. Thompson, and T. H. Pers_): https://elifesciences.org/articles/55851
