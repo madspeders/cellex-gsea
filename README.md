@@ -2,7 +2,7 @@
 R package to calculate cell specific expression of genes, using an input gene set and a CELLEX dataset.  
 
 ## Installation instructions
-Use the function `install_github` from the package `devtools` to install this R package:
+Use the function `install_github` from the package `devtools` to install this R package (for the code to function properly, please update any other outdated packages in the process when/if prompted to):
 ```R
 devtools::install_github("https://github.com/Mporse/cellex-gsea")
 ```
