@@ -15,6 +15,3 @@ Outputs dataframe with either empirical p-values and z-values, p-values
 \description{
 CELLEX-GSEA
 }
-\author{
-Mads Porse Pedersen
-}
