@@ -2,8 +2,8 @@ Package: cellex.gsea
 Type: Package
 Title: Gene set enrichment analysis of different cell types using CELLEX values
 Version: 0.1.0
-Author: Mads Porse Pedersen
-Maintainer: <madsporsepedersen@gmail.com>
+Author: Mads
+Maintainer:
 Description: Takes as input a gene set (in ENSEMBL, UNIPROT, or HNGC format) and performs enrichment analysis / gene specificity analysis and outputs a dataframe with p-values and/or scores indicating how specifically expressed the gene set is in different cell types. The p-values are calculated by comparing the CELLEX values for the input gene set to the CELLEX values for the background gene set.
     Test indented paragraph (uses four spaces).
 License: MIT License
